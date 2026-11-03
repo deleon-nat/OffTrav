@@ -1,0 +1,12 @@
+# private / restricted documents and anything derived from them never leave the laptop
+data/private/
+index/
+runs/
+!runs/.gitkeep
+eval/cases_private*
+
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.streamlit/secrets.toml

@@ -1,0 +1,80 @@
+{
+  "run_id": "20261025-131309_dev",
+  "split": "dev",
+  "n_cases": 6,
+  "modes": [
+    "closed_book",
+    "rag"
+  ],
+  "cases_file": "eval/cases_synthetic.jsonl",
+  "index": "index/synthetic",
+  "settings": {
+    "chat_model": "qwen3:30b-instruct",
+    "embed_model": "nomic-embed-text",
+    "temperature": 0.0,
+    "seed": 42,
+    "top_p": 1.0,
+    "num_ctx": 8192,
+    "num_predict": 700,
+    "think": false,
+    "retrieval_mode": "hybrid",
+    "top_k": 6,
+    "prompt_version": "v1.3",
+    "today": "2026-10-25"
+  },
+  "index_manifest": [
+    {
+      "file": "BCB_Forms_Index.md",
+      "sha256": "e95a928b639b25dd9ab6fd041f0f4935213849264f76b6f121f6a9f36070418c",
+      "units": 9,
+      "chunks": 9
+    },
+    {
+      "file": "BCB_Guide_on_Booking_Airline_Tickets.docx",
+      "sha256": "373b555dc10cc2cb1e66b915a2c9c8fbe85071a5edf9485d194ab63daca0c8ab",
+      "units": 12,
+      "chunks": 12
+    },
+    {
+      "file": "BCB_Official_Passport_and_Visa_FAQ.md",
+      "sha256": "e9d3263defc3f324f6dcaa5ffdf37cab5ab15820a6c78932a71997735cadbbdc",
+      "units": 6,
+      "chunks": 6
+    },
+    {
+      "file": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "sha256": "2655e42c411fbf767b93e6766087c8f81f5d6beabd5bfcc14c77635a2cdb9197",
+      "units": 3,
+      "chunks": 12
+    },
+    {
+      "file": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "sha256": "17ab48a885b60f0506f46635a7e4800532ef555d0a0286575a03cb79192ef23a",
+      "units": 38,
+      "chunks": 38
+    },
+    {
+      "file": "BCB_Travel_Contacts.csv",
+      "sha256": "68b989cdbb8174615178c84d7da878bcd869eb38668348ff13a1281cb5be086c",
+      "units": 8,
+      "chunks": 8
+    },
+    {
+      "file": "BCB_Traveller_Tips_UNOFFICIAL.md",
+      "sha256": "618026c5e328d840697ddabfd9b61483ec4511429f9bd153ec1d6b0eb2941c14",
+      "units": 4,
+      "chunks": 4
+    }
+  ],
+  "machine": {
+    "platform": "Windows-11-10.0.26300-SP0",
+    "processor": "AMD64 Family 26 Model 96 Stepping 0, AuthenticAMD",
+    "cpu_count": 16,
+    "python": "3.14.7",
+    "ram_gb": 27.7,
+    "summary": "Windows-11-10.0.26300-SP0, AMD64 Family 26 Model 96 Stepping 0, AuthenticAMD, 16 CPUs, RAM 27.7 GB"
+  },
+  "started": "2026-10-25T13:13:09",
+  "finished": "2026-10-25T13:17:48",
+  "wall_time_s": 279.2
+}

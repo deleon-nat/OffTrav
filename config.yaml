@@ -1,0 +1,41 @@
+# OffTrav configuration. Every value can be overridden with an environment variable
+# named OFFTRAV_<SECTION>_<KEY>, e.g.  OFFTRAV_OLLAMA_CHAT_MODEL=llama3.1:8b
+
+ollama:
+  host: http://localhost:11434
+  chat_model: qwen3:30b-instruct # generation model (instruct = no "thinking"; ~19 GB at Q4, runs on CPU with 32 GB RAM)
+  embed_model: nomic-embed-text  # embedding model for dense retrieval (~0.3 GB)
+  temperature: 0.0               # deterministic decoding for evaluation
+  seed: 42
+  top_p: 1.0
+  num_ctx: 8192                  # context window passed to Ollama
+  full_context_num_ctx: 16384    # larger window used only by the optional full_context mode
+  num_predict: 700               # max output tokens
+  think: false                   # disable Qwen3 "thinking" output; ignored for models without it
+  timeout_s: 900                 # per request (CPU inference can be slow)
+
+retrieval:
+  mode: hybrid                   # hybrid | bm25 | dense
+  top_k: 6                       # chunks passed to the LLM
+  candidates: 20                 # per-retriever candidates before fusion
+  max_per_source: 3              # diversity cap: max chunks from one file in the top_k (0 = no cap)
+  rrf_k: 60                      # reciprocal-rank-fusion constant
+  expand_neighbors: 4            # add up to N chunks just before/after the best text hits (keeps numbered steps together; 0 = off)
+  table_default_rows: true       # when a table row is retrieved, also add that table's "not listed" / "all other" rows
+  chunk_chars: 900
+  chunk_overlap: 150
+  embed_query_prefix: "search_query: "        # nomic-embed-text task prefixes
+  embed_document_prefix: "search_document: "
+  embed_batch: 16
+
+safeguards:
+  quarantine_suspicious_chunks: true   # drop retrieved chunks that contain instruction-like text
+  numeric_grounding_check: true        # flag numbers in the answer that are not in the sources
+  citation_check: true                 # validate [S#] citations
+  min_bm25_score: 0.0                  # no-evidence gate: refuse without calling the LLM if BOTH
+  min_dense_similarity: 0.0            #   scores are <= these thresholds (0 = gate only on zero overlap)
+  max_question_chars: 1500
+
+conversation:
+  history_turns: 2                     # previous Q/A pairs sent to the LLM in chat mode
+  today: ""                            # date given to the model; empty = system date. Set e.g. 2026-11-02 for evaluation runs

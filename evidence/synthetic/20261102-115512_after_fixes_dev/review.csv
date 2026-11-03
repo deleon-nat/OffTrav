@@ -1,0 +1,13 @@
+case_id,mode,auto_correct,human_correct,notes
+S01,closed_book,0,,
+S01,rag,1,,
+S02,closed_book,0,,
+S02,rag,1,,
+S03,closed_book,0,,
+S03,rag,1,,
+S04,closed_book,0,,
+S04,rag,1,,
+S05,closed_book,0,,
+S05,rag,1,,
+S06,closed_book,0,,
+S06,rag,1,,

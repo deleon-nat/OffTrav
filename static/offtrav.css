@@ -1,0 +1,110 @@
+/* OffTrav chat app styles. Palette: BSP midnight blue and yellow gold; text in black. */
+@font-face { font-family: "Montserrat"; font-weight: 400; src: url("app/static/fonts/Montserrat-Regular.ttf") format("truetype"); }
+@font-face { font-family: "Montserrat"; font-weight: 600; src: url("app/static/fonts/Montserrat-SemiBold.ttf") format("truetype"); }
+@font-face { font-family: "Montserrat"; font-weight: 700; src: url("app/static/fonts/Montserrat-Bold.ttf") format("truetype"); }
+
+:root {
+  --navy: #0B2A5B; --gold: #C9A227; --gold-pale: #FBF3D9; --mist: #EEF2F8;
+  --ink: #000000; --line: #C9D3E3; --alert: #A4262C; --alert-pale: #FBEAEA;
+}
+html, body, .stApp, [class*="st-"]:not([data-testid="stIconMaterial"]):not(.material-symbols-rounded),
+textarea, input, select, button { font-family: "Montserrat", Arial, sans-serif !important; }
+.stApp, .stMarkdown, p, li, label, [data-testid="stCaptionContainer"] { color: var(--ink); }
+.block-container { padding-top: 2.2rem; max-width: 880px; }
+header[data-testid="stHeader"] { background: transparent; }
+
+/* boarding pass header */
+.ot-pass { display: flex; align-items: stretch; border-radius: 14px; overflow: hidden;
+  border: 1.5px solid var(--navy); margin-bottom: 1.1rem; }
+.ot-main { background: var(--navy); color: #fff; padding: 1.15rem 1.4rem 1.1rem; flex: 1 1 auto; }
+.ot-word { font-weight: 700; font-size: 2.15rem; letter-spacing: -0.5px; line-height: 1; color: #fff; }
+.ot-word span { color: var(--gold); }
+.ot-tag { margin-top: .45rem; font-size: .95rem; color: #fff; }
+.ot-stub { position: relative; background: #fff; padding: 1rem 1.3rem; min-width: 220px;
+  border-left: 2px dashed var(--navy); display: flex; flex-direction: column; justify-content: center; gap: .55rem; }
+.ot-stub::before, .ot-stub::after { content: ""; position: absolute; left: -11px; width: 20px; height: 20px;
+  background: #fff; border: 1.5px solid var(--navy); border-radius: 50%; }
+.ot-stub::before { top: -11px; } .ot-stub::after { bottom: -11px; }
+.ot-field small { display: block; font-size: .72rem; font-weight: 600; color: var(--ink); }
+.ot-field b { font-size: .92rem; font-weight: 700; color: var(--navy); }
+
+/* tabs */
+[data-baseweb="tab-list"] { gap: .4rem; border-bottom: 1.5px solid var(--line); }
+[data-testid="stTab"] p, button[role="tab"] p { font-weight: 600 !important; font-size: 1rem !important; color: var(--ink); }
+[data-testid="stTab"][aria-selected="true"] p, button[role="tab"][aria-selected="true"] p { color: var(--navy) !important; }
+[data-baseweb="tab-highlight"] { background-color: var(--gold) !important; height: 3px; }
+
+/* headings and intro text */
+.ot-h { font-weight: 700; font-size: 1.3rem; color: var(--navy); margin: .6rem 0 .3rem; }
+.ot-p { font-size: .98rem; margin: 0 0 .9rem; color: var(--ink); }
+.ot-small, .stMarkdown p.ot-small { font-size: .82rem !important; color: var(--ink); line-height: 1.5 !important; }
+
+/* buttons */
+div[data-testid="stButton"] > button p { white-space: normal; text-align: left; line-height: 1.35; }
+div[data-testid="stButton"] > button div { justify-content: flex-start; text-align: left; width: 100%; }
+[class*="st-key-starter"] button { border: 1.5px solid var(--line); background: #fff; color: var(--ink);
+  border-radius: 10px; padding: .8rem 1rem; font-weight: 600; min-height: 4.2rem; }
+[class*="st-key-starter"] button:hover { border-color: var(--gold); background: var(--gold-pale); color: var(--ink); }
+button:focus-visible, a:focus-visible { outline: 3px solid var(--gold) !important; outline-offset: 2px; }
+
+/* messages */
+[data-testid="stChatMessage"] { padding: .9rem 1rem; border-radius: 12px; }
+[class*="st-key-msg-user"] [data-testid="stChatMessage"] { background: var(--mist); }
+[class*="st-key-msg-assistant"] [data-testid="stChatMessage"] { background: #fff; border: 1px solid var(--line); }
+[class*="st-key-msg-user"] [data-testid="stChatMessageAvatarCustom"] { background: var(--gold); border: none; }
+[class*="st-key-msg-user"] [data-testid="stChatMessageAvatarCustom"] span { color: var(--navy) !important; }
+[class*="st-key-msg-assistant"] [data-testid="stChatMessageAvatarCustom"] { background: var(--navy); border: none; }
+[class*="st-key-msg-assistant"] [data-testid="stChatMessageAvatarCustom"] span { color: #fff !important; }
+.ot-sources { margin: .6rem 0 .6rem; padding: .7rem .9rem; border: 1px solid var(--line); border-radius: 10px; }
+.ot-sources b { font-size: .85rem; color: var(--navy); }
+.ot-sources ol { margin: .35rem 0 0 1.1rem; padding: 0; font-size: .85rem; }
+.ot-meta { font-size: .78rem; color: var(--ink); margin-top: .4rem; }
+div[data-testid="stAlert"] { background: var(--gold-pale); border: 1px solid var(--gold); color: var(--ink); border-radius: 10px; }
+div[data-testid="stAlert"] p { color: var(--ink); font-size: .88rem; }
+[data-testid="stChatInput"] { border: 1.5px solid var(--navy); border-radius: 12px; }
+
+/* trip planner */
+.ot-item { display: grid; grid-template-columns: 7.2rem 1fr; gap: 1rem; padding: .75rem 0; }
+.ot-date { border: 1.5px solid var(--navy); border-radius: 10px; text-align: center; padding: .35rem .2rem; background: #fff; }
+.ot-date .d { font-size: 1.45rem; font-weight: 700; color: var(--navy); line-height: 1.1; }
+.ot-date .m { font-size: .78rem; font-weight: 600; color: var(--ink); }
+.ot-date.none { border-style: dashed; }
+.ot-date.none .d { font-size: .85rem; padding: .45rem 0; }
+.ot-date.overdue { border-color: var(--alert); background: var(--alert-pale); }
+.ot-date.overdue .d { color: var(--alert); }
+.ot-date.soon { border-color: var(--gold); background: var(--gold-pale); }
+.ot-step { font-weight: 600; font-size: .98rem; color: var(--ink); }
+.ot-step.done { text-decoration: line-through; }
+.ot-sub { font-size: .82rem; color: var(--ink); margin-top: .2rem; line-height: 1.45; }
+.ot-badge { display: inline-block; font-size: .72rem; font-weight: 700; padding: .1rem .5rem; border-radius: 6px;
+  margin-left: .35rem; vertical-align: 1px; }
+.ot-badge.overdue { background: var(--alert); color: #fff; }
+.ot-badge.soon { background: var(--gold); color: var(--ink); }
+.ot-badge.weekend { background: var(--mist); color: var(--ink); border: 1px solid var(--line); }
+.ot-progress { font-weight: 600; color: var(--navy); margin: .3rem 0 .2rem; }
+
+/* contacts */
+.ot-contact { border: 1px solid var(--line); border-radius: 12px; padding: .85rem 1rem .4rem; margin-bottom: .2rem; }
+.ot-contact .t { font-weight: 700; color: var(--navy); font-size: .98rem; }
+.ot-contact .o { font-size: .88rem; margin-top: .15rem; }
+.ot-contact .w { font-size: .82rem; margin-top: .3rem; }
+.ot-contact .e { font-size: .85rem; font-weight: 600; margin-top: .3rem; word-break: break-all; }
+
+/* documents */
+.ot-docs { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.ot-docs th { text-align: left; color: #fff; background: var(--navy); padding: .45rem .6rem; font-weight: 600; }
+.ot-docs td { padding: .45rem .6rem; border-bottom: 1px solid var(--line); color: var(--ink); }
+
+/* code snippets */
+code { color: var(--ink) !important; background: var(--mist) !important; }
+
+/* sidebar */
+section[data-testid="stSidebar"] h3 { font-weight: 700; color: var(--navy); font-size: 1.05rem; }
+
+@media (max-width: 640px) {
+  .ot-pass { flex-direction: column; }
+  .ot-stub { border-left: none; border-top: 2px dashed var(--navy); min-width: 0; }
+  .ot-stub::before, .ot-stub::after { display: none; }
+  .ot-item { grid-template-columns: 5.6rem 1fr; gap: .7rem; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

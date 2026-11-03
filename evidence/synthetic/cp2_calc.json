@@ -1,0 +1,244 @@
+﻿{
+  "question": "I have a 4-day official travel period in Brussels. How much is my total daily transportation allowance?",
+  "mode": "rag",
+  "answer": "What applies:  \n- Brussels is in Europe [S4].  \n- The daily transportation allowance is USD 50 per calendar day of the approved official travel period [S1][S2].  \n\nPrepare:  \n- The official travel period for Europe may start up to two (2) days before and end up to two (2) days after the event [S4].  \n- Since the travel period is 4 days, the allowance applies for all 4 days.  \n\nWho to contact:  \n- None needed for this calculation.  \n\nSteps:  \n1. Confirm the exact dates of the official travel period (start and end) with your Administrative Officer [S5].  \n2. Multiply the daily transportation allowance (USD 50) by the number of days in the official travel period (4 days):  \n   USD 50 ├ù 4 = USD 200 [S1][S2].  \n\nTotal daily transportation allowance: USD 200 [S1][S2].",
+  "warnings": [
+    "Check 1: it has no citation.",
+    "Check 2: it has no citation.",
+    "Check 50: it has no citation.",
+    "Confirm these figures with the DES Administrative Unit before relying on them."
+  ],
+  "flags": {
+    "question_injection": false,
+    "model_notes": [],
+    "refusal": false,
+    "invalid_citations": [],
+    "ungrounded_numbers": [
+      "200"
+    ],
+    "claim_problems": [
+      "Check 1: it has no citation.",
+      "Check 2: it has no citation.",
+      "Check 50: it has no citation."
+    ]
+  },
+  "retrieved": [
+    {
+      "id": "d9e2502a69f1",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Rules' row 5",
+      "section": "Rules",
+      "score": 0.03279,
+      "expanded": ""
+    },
+    {
+      "id": "1c31367e5d50",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Allowances' row 5",
+      "section": "Allowances",
+      "score": 0.032,
+      "expanded": ""
+    },
+    {
+      "id": "488d3c203ad8",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Allowances' row 4",
+      "section": "Allowances",
+      "score": 0.03102,
+      "expanded": ""
+    },
+    {
+      "id": "75d5070c4fed",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.1",
+      "section": "",
+      "score": 0.03078,
+      "expanded": ""
+    },
+    {
+      "id": "663a535d46f4",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.1",
+      "section": "",
+      "score": 0.01449,
+      "expanded": ""
+    },
+    {
+      "id": "1d4acd86c87a",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.2",
+      "section": "",
+      "score": 0.0137,
+      "expanded": ""
+    },
+    {
+      "id": "42df32c6ded9",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Rules' row 10",
+      "section": "Rules",
+      "score": null,
+      "expanded": "table default row"
+    }
+  ],
+  "quarantined": [],
+  "citations": [
+    {
+      "id": "S1",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Rules' row 5",
+      "text": "The daily transportation allowance (USD 50) is paid for each calendar day of the approved official travel period."
+    },
+    {
+      "id": "S2",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Allowances' row 5",
+      "text": "Allowance: Daily transportation allowance; Amount (USD): 50; Basis: Per day of the official travel period; Applies to: All personnel"
+    },
+    {
+      "id": "S4",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.1",
+      "text": "service fee, in and out allowance, representation allowance, hotel ceiling and clothing allowance in the BCB Travel Allowance Rates schedule. Where the organiser provides meals, accommodation or transport, BCB grants only the difference between the BCB entitlement and what the organiser provides. 3. Duration. The official travel period may start no earlier than one (1) day before and end no later than one (1) day after the event for destinations in Asia. For destinations in Europe, the Americas, the Middle East, Africa and Oceania, the official travel period may start up to two (2) days before and end up to two (2) days after the event. 4. Vacation leave. Filing of vacation leave abroad before the official travel is not allowed. Vacation leave abroad after the official travel is limited to a maximum of five (5) working days, subject to approval of the Department Head and the Sector Head."
+    },
+    {
+      "id": "S5",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.1",
+      "text": "of the Corporate Services Sector. The FTC evaluates and approves proposals for participation of BCB personnel in official foreign travel assignments. The FTC is assisted by the FTC Technical Staff from the Learning and Development Department (LDD), which also qualifies the travel insurance companies that may insure BCB personnel on official foreign travel. C. General Provisions 1. Budget. Foreign travel is charged to the travel budget of the traveller's Sector. No augmentation of the approved foreign travel budget is allowed. The Administrative Officer (AO) of the department confirms budget availability on the nomination form. 2. Expenses and allowances. BCB personnel are entitled to the per diem, daily transportation allowance, service fee, in and out allowance, representation allowance, hotel ceiling and clothing allowance in the BCB Travel Allowance Rates schedule."
+    }
+  ],
+  "settings": {
+    "chat_model": "qwen3:30b-instruct",
+    "embed_model": "nomic-embed-text",
+    "temperature": 0.0,
+    "seed": 42,
+    "top_p": 1.0,
+    "num_ctx": 8192,
+    "num_predict": 700,
+    "think": false,
+    "retrieval_mode": "hybrid",
+    "top_k": 6,
+    "prompt_version": "v1.4",
+    "today": "2026-11-02"
+  },
+  "latency_s": 50.402,
+  "retrieval_s": 2.508,
+  "prompt_tokens": 1541,
+  "output_tokens": 207,
+  "claim_checks": [
+    {
+      "claim": "- The daily transportation allowance is USD 50 per calendar day of the approved official travel period [S1][S2].",
+      "cites": [
+        "S1",
+        "S2"
+      ],
+      "checks": [
+        {
+          "number": "50",
+          "status": "supported",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "claim": "- The official travel period for Europe may start up to two (2) days before and end up to two (2) days after the event [S4].",
+      "cites": [
+        "S4"
+      ],
+      "checks": [
+        {
+          "number": "2",
+          "status": "supported",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "claim": "- Since the travel period is 4 days, the allowance applies for all 4 days.",
+      "cites": [],
+      "checks": [
+        {
+          "number": "4",
+          "status": "from_question",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "claim": "1.",
+      "cites": [],
+      "checks": [
+        {
+          "number": "1",
+          "status": "uncited",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "claim": "2.",
+      "cites": [],
+      "checks": [
+        {
+          "number": "2",
+          "status": "uncited",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "claim": "Multiply the daily transportation allowance (USD 50) by the number of days in the official travel period (4 days):",
+      "cites": [],
+      "checks": [
+        {
+          "number": "4",
+          "status": "from_question",
+          "detail": ""
+        },
+        {
+          "number": "50",
+          "status": "uncited",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "claim": "USD 50 ├ù 4 = USD 200 [S1][S2].",
+      "cites": [
+        "S1",
+        "S2"
+      ],
+      "checks": [
+        {
+          "number": "4",
+          "status": "from_question",
+          "detail": ""
+        },
+        {
+          "number": "50",
+          "status": "supported",
+          "detail": ""
+        },
+        {
+          "number": "200",
+          "status": "calculated",
+          "detail": "200 = 4 x 50"
+        }
+      ]
+    },
+    {
+      "claim": "Total daily transportation allowance: USD 200 [S1][S2].",
+      "cites": [
+        "S1",
+        "S2"
+      ],
+      "checks": [
+        {
+          "number": "200",
+          "status": "calculated",
+          "detail": "200 = 4 x 50"
+        }
+      ]
+    }
+  ]
+}

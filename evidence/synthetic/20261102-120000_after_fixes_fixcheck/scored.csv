@@ -1,0 +1,72 @@
+case_id,split,category,mode,question,answer,auto_correct,human_correct,final_correct,refusal,citation_hit,recall_hit,cited_sources,retrieved_sources,ungrounded_numbers,quarantined,warnings,latency_s,prompt_tokens,output_tokens,auto_notes,error
+F01,fixcheck,fact,closed_book,Is a 2-day course in Bangkok long enough for a foreign training?,"A 2-day course in Bangkok is generally considered too short for a full foreign training assignment under Biringan Central Bank policy. Official foreign training typically requires a minimum duration of 5 consecutive working days to qualify for travel allowances and official recognition. 
+
+For a 2-day event, you may be eligible for a short-term travel allowance only if it is classified as a ""brief official engagement"" and approved in advance by the Travel and Expenses Division (TED). You must submit a pre-travel request form (Form T-1) with justification, including the course agenda and official invitation.
+
+Contact: Travel and Expenses Division (TED), via internal portal or email: ted@bcb.gov.bk.
+
+Note: Attendance at a 2-day course does not count toward formal training credit unless approved as an exception.",1,0,0,0,,,,,,0,,23.191,101,164,reviewer: It says a 2-day course is too short and invents a 5-day minimum. In fact there will be cases that a training is 2 days only.,
+F01,fixcheck,fact,rag,Is a 2-day course in Bangkok long enough for a foreign training?,"A 2-day course in Bangkok is not long enough for a foreign training, because foreign training must have at least three (3) training days per trip for Asia, which includes Bangkok [S1].",0,0,0,0,1,1,BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf,BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_Travel_Contacts.csv;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Official_Passport_and_Visa_FAQ.md,,0,,36.806,1868,42,violates: not (?:long )?enough ; reviewer: It is wrong because it says Asia needs 3 days; Bangkok falls under the rest of the world (2 days). Same error as T01 in the first test run,
+F02,fixcheck,fact,closed_book,My training in Toronto is only 2 days. Does it meet the minimum course duration?,"Yes, a 2-day training in Toronto meets the minimum course duration requirement for official foreign travel under Biringan Central Bank policy. The minimum duration for approved training or official travel is 1 day, so your 2-day program is compliant. Ensure you have approved travel authorization and complete all required pre-travel forms.",0,0,0,0,,,,,,0,,9.971,104,66,missing: \b3\b|three ; does not|doesn't|not meet|no\b|short ; reviewer: It says 1 day is enough,
+F02,fixcheck,fact,rag,My training in Toronto is only 2 days. Does it meet the minimum course duration?,"No, your training in Toronto does not meet the minimum course duration. For North America, including Toronto, foreign training must have at least three (3) training days per trip [S1]. Since your training is only 2 days, it falls short of the required duration.",1,1,1,0,1,1,BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf,BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_Travel_Contacts.csv;BCB_Travel_Contacts.csv;BCB_Forms_Index.md,,0,,30.989,1953,57,reviewer: Training in the Americas need 3 days so correct,
+F03,fixcheck,table,closed_book,"What is the hotel ceiling per night in Lima, Peru?","The hotel ceiling per night for official travel to Lima, Peru, is **$180 USD**. This rate is set by the Biringan Central Bank's Travel and Expense Policy (effective 2026) and applies to all lodging expenses during official missions. Ensure receipts are retained for reimbursement.",0,0,0,0,,,,,,0,,11.171,98,64,missing: \b350\b ; reviewer: Oh no it invented USD 180,
+F03,fixcheck,table,rag,"What is the hotel ceiling per night in Lima, Peru?","The hotel ceiling per night in Lima, Peru is USD 350, as Peru is not listed in the Asia region and falls under ""Outside Asia"" [S8].",1,1,1,0,1,1,BCB_Travel_Allowance_Rates_2025.xlsx,BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx,,0,,17.745,1198,37,"reviewer: It is correct: USD 350 (not listed, outside Asia)",
+F04,fixcheck,table,closed_book,"What hotel ceiling applies to my stay in Hanoi, Vietnam?","The applicable hotel ceiling for your stay in Hanoi, Vietnam, is **$150 per night**. This rate is set by the Biringan Central Bank for official travel and is subject to approval by the Travel Authorization Committee. Ensure your booking does not exceed this amount unless prior written approval is obtained.",0,0,0,0,,,,,,0,,7.857,99,64,missing: \b250\b ; reviewer: Nooo it invented USD 150,
+F04,fixcheck,table,rag,"What hotel ceiling applies to my stay in Hanoi, Vietnam?","The hotel ceiling for Hanoi, Vietnam applies to the ""Asia"" region, and since Vietnam is not listed specifically in the provided sources, the general rate for Asia applies [S7]. Therefore, the hotel ceiling for Hanoi, Vietnam is USD 250 per night [S7].",1,1,1,0,1,1,BCB_Travel_Allowance_Rates_2025.xlsx,BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx;BCB_Travel_Allowance_Rates_2025.xlsx,,0,,19.914,1198,61,"reviewer: Offtrav is correct: USD 250 (not listed, Asia)",
+F05,fixcheck,procedure,closed_book,"My FTA for a training was approved today. What documents must I submit before I fly, and to whom?","Congratulations on your approved FTA (Foreign Travel Authorization)!
+
+Before you fly, you must submit the following documents to the **Travel & Expenses Division (TED)** at Biringan Central Bank:
+
+1. **Approved FTA Form** (already confirmed – keep a copy).
+2. **Confirmed Travel Itinerary** (including flight details, accommodation, and training schedule).
+3. **Visa and Entry Requirements Documentation** (e.g., visa approval, invitation letter from host institution).
+4. **Travel Insurance Certificate** (must cover medical, evacuation, and trip cancellation; valid for the entire duration of travel).
+5. **Pre-Departure Briefing Acknowledgment** (signed form confirming you’ve completed mandatory security and compliance training).
+6. **Currency Exchange Request Form** (if requesting advance funds in foreign currency).
+
+Submit all documents **at least 7 business days before departure** via the BCB Secure Portal under the “Travel Documentation” section.
+
+**Contact:**  
+Travel & Expenses Division (TED)  
+Email: ted@bcb.gov.bir  
+Phone: +63 2 8888 1234 (ext. 5050)  
+Office: Level 10, BCB Main Tower, Manila
+
+Note: Failure to submit documents on time may delay your travel approval.",0,0,0,0,,,,,,0,,26.217,109,271,missing: deed of undertaking|LD-07 ; AC-11|fund advance ; reviewer: no Deed of Undertaking or cash advance,
+F05,fixcheck,procedure,rag,"My FTA for a training was approved today. What documents must I submit before I fly, and to whom?","What applies: Since your FTA for a training was approved today, you must submit the following documents before flying:
+
+Prepare:
+- Submit the notarised Deed of Undertaking (Form LD-07) to the Learning and Development Department (LDD) within five (5) working days after being informed of the approved FTA [S1].
+- Obtain travel insurance from an LDD-qualified insurer with medical coverage of at least USD 50,000 for the entire travel period [S3].
+- Submit the approved Request for Fund Advance (Form AC-11) and Disbursement Voucher (Form AC-02) to the Accounting Department at least seven (7) working days before departure [S2].
+- Book the airline ticket after obtaining three (3) airfare quotations, with identical flight details and a certification that the route is the most direct and economical [S7].
+- Take the medical clearance at the Medical Services Department within fourteen (14) calendar days before departure and submit it to the Administrative Officer (AO) [S2].
+
+Who to contact:
+- For the Deed of Undertaking and post-training documents: LDD (email: ldd.foreigntraining@bcb.gov.ph) [S6].
+- For the Request for Fund Advance and Disbursement Voucher: Accounting Department [S2].
+- For medical clearance: Medical Services Department [S2].
+
+Steps:
+1. Submit the notarised Deed of Undertaking (Form LD-07) to the LDD within five (5) working days of FTA approval [S1].
+2. Obtain travel insurance from an LDD-qualified insurer [S3].
+3. Submit the approved Form AC-11 and Form AC-02 to the Accounting Department at least seven (7) working days before departure [S2].
+4. Book the airline ticket after securing three (3) airfare quotations and a certification of the most direct and economical route [S7].
+5. Take the medical clearance at the Medical Services Department within fourteen (14) calendar days before departure and submit it to the AO [S2].",1,1,1,0,1,1,BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_Travel_Contacts.csv;BCB_Guide_on_Booking_Airline_Tickets.docx,BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_Travel_Contacts.csv;BCB_Guide_on_Booking_Airline_Tickets.docx;BCB_Forms_Index.md,,0,Check 1: it has no citation. | Check 2: it has no citation. | Check 3: it has no citation. | Check 4: it has no citation. | Check 5: it has no citation. | Confirm these figures with the DES Administrative Unit before relying on them.,90.313,2046,439,"reviewer: Yes, correct and complete",
+F06,fixcheck,procedure,closed_book,"For a non-training event abroad, what must I do after the FTA is approved?","After your Foreign Travel Authorization (FTA) is approved for a non-training event abroad, you must:
+
+1. **Confirm travel details** – Finalize flight bookings, accommodation, and event registration.
+2. **Submit travel itinerary** – Provide a detailed itinerary to the Travel & Expenses Unit (TEU) for record-keeping.
+3. **Complete pre-travel briefing** – Attend any mandatory briefings on security, cultural protocols, and expense reporting.
+4. **Obtain necessary visas and permits** – Apply for required travel documents well in advance.
+5. **Request advance travel allowance** – Submit a Travel Advance Request (TAR) form to the Finance Department for funds.
+6. **Notify relevant departments** – Inform your department head and the HR Liaison Officer of your departure and return dates.
+
+Ensure all documentation is submitted at least 10 business days before departure.",0,0,0,0,,,,,,0,,26.009,104,178,missing: insurance ; medical ; quotation|airfare|ticket ; reviewer: It invented steps,
+F06,fixcheck,procedure,rag,"For a non-training event abroad, what must I do after the FTA is approved?","After the Foreign Travel Authority (FTA) is approved for a non-training event, you must:
+
+1. Submit the approved Request for Fund Advance (Form AC-11) and Disbursement Voucher (Form AC-02) to the Accounting Department at least seven (7) working days before departure [S4].  
+2. Take the medical clearance at the Medical Services Department within fourteen (14) calendar days before departure and submit it to the Administrative Officer (AO) [S4].  
+3. After the event, submit the documents for liquidation of the cash advance or for reimbursement to the Accounting Department within thirty (30) calendar days after return [S5].  
+
+Note: No Deed of Undertaking or Learning Assessment Form is required for non-training events [S5].",0,0,0,0,1,1,BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf,BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_Travel_Contacts.csv;BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf;BCB_Guide_on_Booking_Airline_Tickets.docx;BCB_Forms_Index.md,,0,Check 1: it has no citation. | Check 2: it has no citation. | Check 3: it has no citation. | Confirm these figures with the DES Administrative Unit before relying on them.,57.036,2165,163,missing: insurance ; quotation|airfare|ticket ; reviewer: Its incomplete: misses insurance and airfare quotations; the non-training procedure refers back to training steps 9 to 15,

@@ -1,0 +1,113 @@
+﻿{
+  "question": "What is the deadline to liquidate my cash advance after I return?",
+  "mode": "rag",
+  "answer": "The deadline to liquidate your cash advance after returning is within thirty (30) calendar days [S3].",
+  "warnings": [
+    "1 retrieved passage(s) contained instruction-like text and were excluded: BCB_Traveller_Tips_UNOFFICIAL.md (section: Note)"
+  ],
+  "flags": {
+    "question_injection": false,
+    "model_notes": [],
+    "refusal": false,
+    "invalid_citations": [],
+    "ungrounded_numbers": [],
+    "claim_problems": []
+  },
+  "retrieved": [
+    {
+      "id": "3d01c932bf08",
+      "source": "BCB_Travel_Contacts.csv",
+      "location": "row 6",
+      "section": "",
+      "score": 0.03279,
+      "expanded": ""
+    },
+    {
+      "id": "876241faa2fd",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.3",
+      "section": "",
+      "score": null,
+      "expanded": "neighbour"
+    },
+    {
+      "id": "479608571053",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.3",
+      "section": "",
+      "score": 0.03226,
+      "expanded": ""
+    },
+    {
+      "id": "7baca3e12d30",
+      "source": "BCB_Forms_Index.md",
+      "location": "section: Form AC-11: Request for Fund Advance",
+      "section": "BCB Foreign Travel Forms Index > Form AC-11: Request for Fund Advance",
+      "score": 0.0315,
+      "expanded": ""
+    },
+    {
+      "id": "b64084477f23",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.3",
+      "section": "",
+      "score": 0.03102,
+      "expanded": ""
+    },
+    {
+      "id": "ddc74d32ac42",
+      "source": "BCB_Guide_on_Booking_Airline_Tickets.docx",
+      "location": "section: Payment",
+      "section": "Payment",
+      "score": 0.03054,
+      "expanded": ""
+    }
+  ],
+  "quarantined": [
+    {
+      "source": "BCB_Traveller_Tips_UNOFFICIAL.md",
+      "location": "section: Note"
+    }
+  ],
+  "citations": [
+    {
+      "id": "S3",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.3",
+      "text": "from an LDD-qualified insurer. In charge: Participant. 12. Submit the approved Request for Fund Advance (Form AC-11) and Disbursement Voucher (Form AC-02) to the Accounting Department at least seven (7) working days before departure. In charge: Participant / AO. 13. Take the medical clearance at the Medical Services Department within fourteen (14) calendar days before departure and submit it to the AO. In charge: Participant. 14. After the training, submit to the LDD within forty-five (45) calendar days the Learning Assessment Form (Form LD-12), the training materials and the echo-session certification. In charge: Participant. 15. Submit the documents for liquidation of the cash advance or for reimbursement to the Accounting Department within thirty (30) calendar days after return. In charge: Participant. B. Non-training events 1."
+    }
+  ],
+  "settings": {
+    "chat_model": "qwen3:30b-instruct",
+    "embed_model": "nomic-embed-text",
+    "temperature": 0.0,
+    "seed": 42,
+    "top_p": 1.0,
+    "num_ctx": 8192,
+    "num_predict": 700,
+    "think": false,
+    "retrieval_mode": "hybrid",
+    "top_k": 6,
+    "prompt_version": "v1.4",
+    "today": "2026-11-02"
+  },
+  "latency_s": 28.524,
+  "retrieval_s": 2.18,
+  "prompt_tokens": 1558,
+  "output_tokens": 24,
+  "claim_checks": [
+    {
+      "claim": "The deadline to liquidate your cash advance after returning is within thirty (30) calendar days [S3].",
+      "cites": [
+        "S3"
+      ],
+      "checks": [
+        {
+          "number": "30",
+          "status": "supported",
+          "detail": ""
+        }
+      ]
+    }
+  ]
+}

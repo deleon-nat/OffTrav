@@ -1,0 +1,139 @@
+﻿{
+  "question": "My last official trip abroad was in March 2023 and I am below the rank of Director. Am I entitled to the clothing allowance?",
+  "mode": "rag",
+  "answer": "Yes, you are entitled to the clothing allowance [S1]. Since your last official foreign travel was in March 2023, it has been more than two years as of November 2026, satisfying the condition of at least two years since the last official foreign travel [S1]. As you are below the rank of Director, you qualify for a clothing allowance of USD 1,000 [S1]. To claim it, you must submit Form TR-09 (Clothing Allowance Request) together with Form AC-11 (Request for Fund Advance), and the request will be approved by the Accounting Department after the Administrative Officer certifies the date of your last travel [S1].",
+  "warnings": [],
+  "flags": {
+    "question_injection": false,
+    "model_notes": [],
+    "refusal": false,
+    "invalid_citations": [],
+    "ungrounded_numbers": [
+      "2026"
+    ],
+    "claim_problems": []
+  },
+  "retrieved": [
+    {
+      "id": "8f612a8ac3c1",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Clothing Allowance' row 2",
+      "section": "Clothing Allowance",
+      "score": 0.03279,
+      "expanded": ""
+    },
+    {
+      "id": "d6976da08a2b",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Rules' row 8",
+      "section": "Rules",
+      "score": 0.032,
+      "expanded": ""
+    },
+    {
+      "id": "60d943b61ef0",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Clothing Allowance' row 3",
+      "section": "Clothing Allowance",
+      "score": 0.03175,
+      "expanded": ""
+    },
+    {
+      "id": "1d4acd86c87a",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.2",
+      "section": "",
+      "score": 0.03101,
+      "expanded": ""
+    },
+    {
+      "id": "75d5070c4fed",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.1",
+      "section": "",
+      "score": 0.03031,
+      "expanded": ""
+    },
+    {
+      "id": "663a535d46f4",
+      "source": "BCB_OO_2024-101_Foreign_Travel_Guidelines.pdf",
+      "location": "p.1",
+      "section": "",
+      "score": 0.02941,
+      "expanded": ""
+    },
+    {
+      "id": "42df32c6ded9",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Rules' row 10",
+      "section": "Rules",
+      "score": null,
+      "expanded": "table default row"
+    }
+  ],
+  "quarantined": [],
+  "citations": [
+    {
+      "id": "S1",
+      "source": "BCB_Travel_Allowance_Rates_2025.xlsx",
+      "location": "sheet 'Clothing Allowance' row 2",
+      "text": "Allowance: Clothing allowance; Amount (USD): 1000; Applies to: Below the rank of Director; Condition: First official foreign travel, or at least two (2) years since the last official foreign travel; How to claim: Submit the Clothing Allowance Request (Form TR-09) together with the Request for Fund Advance (Form AC-11); Approved by: Accounting Department, after the Administrative Officer certifies the date of the last official foreign travel"
+    }
+  ],
+  "settings": {
+    "chat_model": "qwen3:30b-instruct",
+    "embed_model": "nomic-embed-text",
+    "temperature": 0.0,
+    "seed": 42,
+    "top_p": 1.0,
+    "num_ctx": 8192,
+    "num_predict": 700,
+    "think": false,
+    "retrieval_mode": "hybrid",
+    "top_k": 6,
+    "prompt_version": "v1.4",
+    "today": "2026-11-02"
+  },
+  "latency_s": 46.109,
+  "retrieval_s": 2.161,
+  "prompt_tokens": 1695,
+  "output_tokens": 148,
+  "claim_checks": [
+    {
+      "claim": "Since your last official foreign travel was in March 2023, it has been more than two years as of November 2026, satisfying the condition of at least two years since the last official foreign travel [S1].",
+      "cites": [
+        "S1"
+      ],
+      "checks": [
+        {
+          "number": "2",
+          "status": "supported",
+          "detail": ""
+        },
+        {
+          "number": "2023",
+          "status": "from_question",
+          "detail": ""
+        },
+        {
+          "number": "2026",
+          "status": "from_question",
+          "detail": ""
+        }
+      ]
+    },
+    {
+      "claim": "As you are below the rank of Director, you qualify for a clothing allowance of USD 1,000 [S1].",
+      "cites": [
+        "S1"
+      ],
+      "checks": [
+        {
+          "number": "1000",
+          "status": "supported",
+          "detail": ""
+        }
+      ]
+    }
+  ]
+}

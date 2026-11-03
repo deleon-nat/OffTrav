@@ -1,0 +1,32 @@
+[server]
+address = "localhost"          # the app is reachable only from this laptop
+enableStaticServing = true     # serves static/ (bundled Montserrat font files)
+
+[client]
+toolbarMode = "minimal"      # hides the Deploy button and developer menu
+
+[browser]
+gatherUsageStats = false       # Streamlit sends no usage statistics anywhere
+
+[theme]
+base = "light"
+primaryColor = "#0B2A5B"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#EEF2F8"
+textColor = "#000000"
+font = "Montserrat, Arial, sans-serif"
+
+[[theme.fontFaces]]
+family = "Montserrat"
+url = "app/static/fonts/Montserrat-Regular.ttf"
+weight = 400
+
+[[theme.fontFaces]]
+family = "Montserrat"
+url = "app/static/fonts/Montserrat-SemiBold.ttf"
+weight = 600
+
+[[theme.fontFaces]]
+family = "Montserrat"
+url = "app/static/fonts/Montserrat-Bold.ttf"
+weight = 700

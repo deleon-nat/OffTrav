@@ -1,0 +1,13 @@
+case_id,mode,auto_correct,human_correct,notes
+F01,closed_book,1,0,It says a 2-day course is too short and invents a 5-day minimum. In fact there will be cases that a training is 2 days only. 
+F01,rag,0,0,It is wrong because it says Asia needs 3 days; Bangkok falls under the rest of the world (2 days). Same error as T01 in the first test run
+F02,closed_book,0,0,It says 1 day is enough
+F02,rag,1,1,Training in the Americas need 3 days so correct
+F03,closed_book,0,0,Oh no it invented USD 180
+F03,rag,1,1,"It is correct: USD 350 (not listed, outside Asia)"
+F04,closed_book,0,0,Nooo it invented USD 150
+F04,rag,1,1,"Offtrav is correct: USD 250 (not listed, Asia)"
+F05,closed_book,0,0,no Deed of Undertaking or cash advance
+F05,rag,1,1,"Yes, correct and complete"
+F06,closed_book,0,0,It invented steps
+F06,rag,0,0,Its incomplete: misses insurance and airfare quotations; the non-training procedure refers back to training steps 9 to 15

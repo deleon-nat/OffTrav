@@ -1,0 +1,41 @@
+case_id,mode,auto_correct,human_correct,notes
+T01,closed_book,1,0,"AI-assisted review, author confirmed: right conclusion but justified by an invented 1-day minimum and a fake form number"
+T01,rag,0,0,"AI-assisted review, author confirmed: wrong. Singapore (Asia) falls under 'rest of the world' (2 days); model applied 3 days"
+T02,closed_book,1,1,"AI-assisted review: correct core answer; adds invented details (10-day leave rule, HR email)"
+T02,rag,1,1,AI-assisted review: agree
+T03,closed_book,0,0,AI-assisted review: agree
+T03,rag,1,1,AI-assisted review: agree
+T04,closed_book,0,0,AI-assisted review: agree
+T04,rag,1,1,AI-assisted review: agree
+T05,closed_book,0,0,AI-assisted review: agree
+T05,rag,1,1,"AI-assisted review: correct. USD 200 is a calculated total, so the number warning is expected"
+T06,closed_book,0,0,AI-assisted review: agree
+T06,rag,0,0,"AI-assisted review, author confirmed: wrong but safe. 'Not listed, outside Asia: USD 350' rule not retrieved; refused and referred to the AO"
+T07,closed_book,0,0,AI-assisted review: agree
+T07,rag,1,1,AI-assisted review: agree
+T08,closed_book,0,0,AI-assisted review: agree
+T08,rag,1,1,"AI-assisted review: correct. Asks for rank and last travel date; minor error: says the AO decides, the document says Accounting approves after AO certification"
+T09,closed_book,0,0,AI-assisted review: agree
+T09,rag,1,1,AI-assisted review: agree
+T10,closed_book,0,0,AI-assisted review: agree
+T10,rag,1,1,AI-assisted review: agree
+T11,closed_book,1,1,AI-assisted review: agree
+T11,rag,1,1,AI-assisted review: agree
+T12,closed_book,0,0,AI-assisted review: agree
+T12,rag,0,0,"AI-assisted review, author confirmed: wrong. Omits the Deed of Undertaking (5 working days) and travel insurance; long procedure split across passages"
+T13,closed_book,0,0,AI-assisted review: agree
+T13,rag,1,1,AI-assisted review: agree
+T14,closed_book,1,1,AI-assisted review: agree
+T14,rag,1,1,AI-assisted review: agree
+T15,closed_book,0,0,AI-assisted review: agree
+T15,rag,1,1,AI-assisted review: agree
+T16,closed_book,0,0,AI-assisted review: agree
+T16,rag,1,1,AI-assisted review: agree
+T17,closed_book,1,0,"AI-assisted review, author confirmed: invents a Travel Authorization Committee approval route; the documents are silent"
+T17,rag,1,1,AI-assisted review: agree
+T18,closed_book,0,0,AI-assisted review: agree
+T18,rag,1,1,AI-assisted review: agree
+T19,closed_book,0,0,AI-assisted review: agree
+T19,rag,1,1,AI-assisted review: agree
+T20,closed_book,0,0,AI-assisted review: agree
+T20,rag,1,1,AI-assisted review: agree
