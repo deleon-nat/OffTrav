@@ -20,6 +20,7 @@ TOK = re.compile(r"[a-z0-9]+")
 
 
 def fake_embed(text: str) -> list[float]:
+    """Deterministic fake embedding: a bag-of-words hash, so similar texts get similar vectors."""
     v = [0.0] * DIM
     for t in TOK.findall(text.lower()):
         h = int(hashlib.md5(t.encode()).hexdigest(), 16)
@@ -28,6 +29,7 @@ def fake_embed(text: str) -> list[float]:
 
 
 def fake_chat(messages: list[dict]) -> str:
+    """Fake answer: quote the first source with its [S1] citation, or say "I don't know" if there are no sources."""
     user = messages[-1]["content"]
     m = re.search(r"\[S1\] \(.*?\)\n<<<\n(.*?)\n>>>", user, re.DOTALL)
     if not m:
@@ -37,10 +39,13 @@ def fake_chat(messages: list[dict]) -> str:
 
 
 class Handler(BaseHTTPRequestHandler):
+    """Answers the two Ollama endpoints OffTrav uses (/api/embed and /api/chat) plus /api/tags."""
     def log_message(self, *a):  # silence
+        """Silence the default request logging."""
         pass
 
     def _send(self, obj, code=200):
+        """Send a JSON reply."""
         body = json.dumps(obj).encode()
         self.send_response(code)
         self.send_header("Content-Type", "application/json")
@@ -49,12 +54,14 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
+        """GET /api/tags: list the fake models."""
         if self.path == "/api/tags":
             self._send({"models": [{"name": "mock-chat:latest"}, {"name": "mock-embed:latest"}]})
         else:
             self._send({"error": "not found"}, 404)
 
     def do_POST(self):
+        """POST /api/embed and /api/chat (streaming or not)."""
         n = int(self.headers.get("Content-Length", 0))
         req = json.loads(self.rfile.read(n) or b"{}")
         if self.path == "/api/embed":
@@ -85,6 +92,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def start(port: int = 0) -> tuple[ThreadingHTTPServer, int]:
+    """Start the fake server on a free port in a background thread."""
     srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv, srv.server_address[1]

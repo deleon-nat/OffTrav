@@ -1,4 +1,15 @@
-"""Scoring rules for the evaluation (deterministic; human review can override)."""
+"""Scoring rules for the evaluation (deterministic; human review can override).
+
+Each test case (eval/cases_synthetic.jsonl) says what a correct answer must contain:
+  must_include      groups of patterns; every group must match at least one pattern
+  must_not_include  patterns that make the answer wrong (e.g. an invented amount, "USD 999")
+  expect_refusal    True = the answer must say the information is not in the guidelines
+  expected_sources  which file(s) hold the answer (used for citation accuracy and retrieval recall)
+
+A case is correct only if every required fact is present, nothing forbidden appears, and it
+refuses when it should. Errors and timeouts count as wrong. A person can then override any score
+in review.csv; the final score is the reviewed one.
+"""
 from __future__ import annotations
 
 import csv
@@ -11,14 +22,17 @@ from . import safeguards as sg
 
 
 def _match(pattern: str, text: str) -> bool:
+    """Case-insensitive regex search."""
     return re.search(pattern, text, re.IGNORECASE) is not None
 
 
 def _src_hit(expected: list[str], sources: list[str]) -> bool:
+    """True if any expected file name appears among the given sources."""
     return any(e.lower() in s.lower() for e in expected for s in sources)
 
 
 def success_rule(case: dict) -> str:
+    """The scoring rule of a case written out in words, for the evidence table."""
     parts = []
     if case.get("expect_refusal") is True:
         parts.append("must say the information is not in the guidelines")
@@ -32,12 +46,14 @@ def success_rule(case: dict) -> str:
 
 
 def score_row(case: dict, res: dict) -> dict:
+    """Score one answer against one case. Returns one row of scored.csv."""
     ans = res.get("answer") or ""
     error = res.get("error")
     refusal = sg.is_refusal(ans) if ans else False
     missing = [g for g in case.get("must_include", []) if not any(_match(p, ans) for p in g)]
     violations = [p for p in case.get("must_not_include", []) if _match(p, ans)]
     exp = case.get("expect_refusal", False)
+    # the primary metric: answer correctness
     if error or not ans:
         correct = 0
     elif exp is True:
@@ -47,6 +63,7 @@ def score_row(case: dict, res: dict) -> dict:
     else:
         correct = int(not missing and not violations)
 
+    # secondary metrics: did it cite the right file, and did search find the right file?
     answerable = bool(case.get("expected_sources")) and exp is not True
     cited = [c["source"] for c in res.get("citations", [])]
     retrieved = [h["source"] for h in res.get("retrieved", []) if not h.get("expanded")]  # ranked top_k only
@@ -100,11 +117,13 @@ def apply_review(rows: list[dict], review_csv: Path) -> tuple[int, int]:
 
 
 def _rate(rows, key, filt=lambda r: True):
+    """(number of 1s, number of scored rows) for one metric, optionally on a subset of rows."""
     vals = [r[key] for r in rows if filt(r) and r[key] is not None and r[key] != ""]
     return (sum(vals), len(vals))
 
 
 def summarise(rows: list[dict], cases: dict) -> dict:
+    """Totals per mode (baseline, OffTrav, full context) plus a paired comparison on the same cases."""
     out = {}
     for mode in sorted({r["mode"] for r in rows}):
         rs = [r for r in rows if r["mode"] == mode]
@@ -143,11 +162,13 @@ def summarise(rows: list[dict], cases: dict) -> dict:
 
 
 def fmt(pair) -> str:
+    """(17, 20) -> '17/20 (85%)'."""
     k, n = pair
     return f"{k}/{n} ({100 * k / n:.0f}%)" if n else "n/a"
 
 
 def summary_markdown(summary: dict, meta: dict) -> str:
+    """The summary.md table written next to every run."""
     modes = [m for m in summary if not m.startswith("paired")]
     label = {"closed_book": "Baseline: same LLM, no retrieval", "rag": "Prototype: OffTrav RAG",
              "full_context": "Full-context prompting (no retrieval)"}
@@ -185,6 +206,7 @@ def summary_markdown(summary: dict, meta: dict) -> str:
 
 
 def write_outputs(run_dir: Path, rows: list[dict], cases: dict, meta: dict) -> dict:
+    """Write scored.csv, case_evidence.csv, review.csv (once), summary.json and summary.md."""
     meta["reviewed"], meta["human_overrides"] = apply_review(rows, run_dir / "review.csv")
     with (run_dir / "scored.csv").open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))

@@ -20,6 +20,7 @@ ODD = re.compile(r"[^\x00-\x7F\u2013\u2014\u2018\u2019\u201c\u201d\u00b0]")  # u
 
 
 def main() -> int:
+    """Report, page by page, how much text each PDF has (pages with little text are probably scans)."""
     folder = Path(sys.argv[1] if len(sys.argv) > 1 else "data/private")
     out = folder / "_pdf_audit.csv"
     rows = []

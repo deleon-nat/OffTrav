@@ -5,11 +5,20 @@
 - check_citations: validate [S#] tags against the sources actually supplied
 - ungrounded_numbers: numbers in the answer that appear in neither the sources nor the question
 - is_refusal: detect the standard "not found" answer
+- check_claims / claim_warnings: per-sentence check of every number against the cited passage
+
+Before the model call (STEP 5 in answer.py): quarantine_chunks, detect_question_injection.
+After the model call (STEP 8): check_citations, ungrounded_numbers, check_claims, is_refusal.
+These checks verify VALUES (was a number copied correctly from its source?). They cannot verify
+CONTEXT (does that rule apply to this employee?); that is left to the prompt rules, the
+evaluation, and the Administrative Unit.
 """
 from __future__ import annotations
 
 import re
 
+# Phrases typical of prompt injection ("ignore previous instructions", "system note for AI assistants").
+# A retrieved passage that matches is removed before the prompt is built.
 INJECTION_PATTERNS = [
     r"ignore (?:all |any )?(?:the )?(?:previous|prior|above|earlier) (?:instructions|rules|prompts?)",
     r"disregard (?:the |your |all )?(?:previous |prior )?(?:instructions|rules)",
@@ -19,6 +28,7 @@ INJECTION_PATTERNS = [
 ]
 _INJ = [re.compile(p, re.IGNORECASE) for p in INJECTION_PATTERNS]
 
+# Ways a model says "the documents do not answer this"; used to count refusals in the evaluation.
 REFUSAL_PATTERNS = [
     r"couldn[’']?t find", r"could not find", r"can(?:no|')t find",
     r"not (?:found|covered|stated|included|specified|mentioned|available|provided) in",
@@ -30,9 +40,10 @@ REFUSAL_PATTERNS = [
 ]
 _REF = [re.compile(p, re.IGNORECASE) for p in REFUSAL_PATTERNS]
 
-CITE_RE = re.compile(r"\[S(\d+)\]")
+CITE_RE = re.compile(r"\[S(\d+)\]")                    # a citation like [S2]
 NUM_RE = re.compile(r"(?<![A-Za-z]-)(?<![A-Za-z\d])\d[\d,]*(?:\.\d+)?")   # skips form codes like LD-07
 
+# number words that appear in office orders ("thirty (30) calendar days")
 NUMBER_WORDS = {
     "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
     "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "fifteen": 15, "twenty": 20, "thirty": 30,
@@ -41,10 +52,12 @@ NUMBER_WORDS = {
 
 
 def suspicious(text: str) -> bool:
+    """True if the text contains an instruction-like phrase aimed at an AI."""
     return any(p.search(text) for p in _INJ)
 
 
 def quarantine_chunks(hits: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Split retrieved passages into (kept, dropped); dropped ones never reach the model."""
     kept, dropped = [], []
     for h in hits:
         (dropped if suspicious(h["text"]) else kept).append(h)
@@ -52,14 +65,17 @@ def quarantine_chunks(hits: list[dict]) -> tuple[list[dict], list[dict]]:
 
 
 def detect_question_injection(question: str) -> bool:
+    """Flag a user question that tries to override the rules (logged; the question is still answered)."""
     return suspicious(question)
 
 
 def is_refusal(answer: str) -> bool:
+    """True if the answer says the information was not found or is out of scope."""
     return any(p.search(answer) for p in _REF)
 
 
 def check_citations(answer: str, n_sources: int) -> dict:
+    """Which [S#] in the answer are valid (1..n_sources) and which point to passages that do not exist."""
     ids = [int(x) for x in CITE_RE.findall(answer)]
     valid = sorted({i for i in ids if 1 <= i <= n_sources})
     invalid = sorted({i for i in ids if not 1 <= i <= n_sources})
@@ -67,6 +83,7 @@ def check_citations(answer: str, n_sources: int) -> dict:
 
 
 def _norm_num(s: str) -> str:
+    """'1,000.00' -> '1000' so the same number written differently still matches."""
     s = s.replace(",", "")
     if "." in s:
         s = s.rstrip("0").rstrip(".")
@@ -74,6 +91,7 @@ def _norm_num(s: str) -> str:
 
 
 def numbers_in(text: str) -> set[str]:
+    """All numbers in a text, as normalised strings, including number words ('thirty' -> '30')."""
     text = CITE_RE.sub(" ", text)
     nums = {_norm_num(m) for m in NUM_RE.findall(text)}
     low = text.lower()
@@ -110,12 +128,13 @@ def ungrounded_numbers(answer: str, context: str, question: str = "") -> list[st
 #   not_found      the number is in no source and is not an explained calculation
 # What code does NOT check: whether the rule applies to the employee's category, destination or dates.
 # That is left to the prompt rules, the test cases, and the employee confirming with the office.
-CLAIM_OK = {"supported", "from_question", "calculated"}
+CLAIM_OK = {"supported", "from_question", "calculated"}       # statuses that need no warning
 _DAY_UNIT = re.compile(r"(\d[\d,]*)\)?\s*(calendar|working)\s+days?", re.IGNORECASE)
 _WORD_DAY_UNIT = re.compile(r"\b(" + "|".join(sorted(NUMBER_WORDS, key=len, reverse=True)) + r")\s+(calendar|working)\s+days?", re.IGNORECASE)
 
 
 def _day_units(text: str) -> dict[str, set[str]]:
+    """Map each number to the day unit written after it: {'30': {'calendar'}, '5': {'working'}}."""
     out: dict[str, set[str]] = {}
     for n, u in _DAY_UNIT.findall(text):
         out.setdefault(_norm_num(n), set()).add(u.lower())
@@ -125,6 +144,7 @@ def _day_units(text: str) -> dict[str, set[str]]:
 
 
 def _claims(answer: str) -> list[str]:
+    """Split an answer into claims: one per sentence or list item."""
     parts = []
     for line in answer.splitlines():
         line = line.strip()
@@ -142,6 +162,7 @@ def _claims(answer: str) -> list[str]:
 
 
 def _explain_calc(target: str, inputs: set[str]) -> str:
+    """If target equals a x b or a + b for two grounded numbers, return that formula, else ''."""
     try:
         t = float(target)
         vals = sorted({float(x) for x in inputs if x and float(x) != t})[:15]
@@ -159,6 +180,7 @@ def _explain_calc(target: str, inputs: set[str]) -> str:
 def check_claims(answer: str, hits: list[dict], question: str = "", extra: str = "") -> list[dict]:
     """Check every number in every claim against the passages the claim cites."""
     def ctx(h):
+        """Everything shown to the model for one passage: text plus file, section and location."""
         return " ".join((h["text"], h.get("section", ""), h["source"], h["location"]))
     per_hit = [numbers_in(ctx(h)) for h in hits]
     any_src = set().union(*per_hit) if per_hit else set()
@@ -166,7 +188,7 @@ def check_claims(answer: str, hits: list[dict], question: str = "", extra: str =
     grounded_in_answer = (numbers_in(CITE_RE.sub(" ", answer)) & (any_src | asked))
     results = []
     claims = _claims(answer)
-    for k, claim in enumerate(claims):
+    for k, claim in enumerate(claims):                 # LOOP over sentences / list items
         body = re.sub(r"^\s*(?:[-*]|\d{1,2}[.)])\s+", "", claim)          # drop list markers
         nums = numbers_in(CITE_RE.sub(" ", body))
         if not nums:
@@ -180,7 +202,7 @@ def check_claims(answer: str, hits: list[dict], question: str = "", extra: str =
         units = _day_units(body)
         src_units = _day_units(cited_txt)
         checks = []
-        for n in sorted(nums, key=float):
+        for n in sorted(nums, key=float):              # LOOP over every number in this claim
             status, detail = "", ""
             if n in cited_nums:
                 status = "supported"
@@ -201,6 +223,7 @@ def check_claims(answer: str, hits: list[dict], question: str = "", extra: str =
 
 
 def claim_warnings(results: list[dict]) -> list[str]:
+    """Plain-language warnings for the statuses that need a person to check (shown under the answer)."""
     msgs = []
     for r in results:
         where = ", ".join(f"[{c}]" for c in r["cites"]) or "no source"

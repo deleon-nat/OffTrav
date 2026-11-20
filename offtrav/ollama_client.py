@@ -1,8 +1,11 @@
 """Minimal HTTP client for the local Ollama server (no SDK dependency).
 
 Only two endpoints are used:
-  POST /api/embed  -> embeddings for retrieval
-  POST /api/chat   -> answer generation
+  POST /api/embed  -> embeddings for retrieval (nomic-embed-text)
+  POST /api/chat   -> answer generation (qwen3:30b-instruct)
+
+Everything runs on the same laptop: the host is http://localhost:11434, so no question or
+document leaves the machine. Decoding is fixed (temperature 0, seed 42) for repeatable answers.
 """
 from __future__ import annotations
 
@@ -12,32 +15,39 @@ import time
 
 import requests
 
+# Qwen3 "thinking" models wrap their reasoning in <think>...</think>; we never show it to the user.
 THINK_RE = re.compile(r"<think>.*?</think>", re.DOTALL | re.IGNORECASE)
 
 
 class OllamaError(RuntimeError):
+    """Raised when Ollama is not running, a model is missing, or a request fails."""
     pass
 
 
 class OllamaClient:
+    """Sends embedding and chat requests to the local Ollama server, using settings from config.yaml."""
+
     def __init__(self, cfg: dict):
+        """Read the Ollama settings from config.yaml."""
         o = cfg["ollama"]
         self.host = o["host"].rstrip("/")
         self.chat_model = o["chat_model"]
         self.embed_model = o["embed_model"]
         self.timeout = o.get("timeout_s", 900)
+        # generation options sent with every chat request
         self.options = {
-            "temperature": o.get("temperature", 0.0),
+            "temperature": o.get("temperature", 0.0),   # 0 = always pick the most likely word (no improvising)
             "seed": o.get("seed", 42),
             "top_p": o.get("top_p", 1.0),
-            "num_ctx": o.get("num_ctx", 8192),
-            "num_predict": o.get("num_predict", 700),
+            "num_ctx": o.get("num_ctx", 8192),          # context window: prompt + answer must fit in this
+            "num_predict": o.get("num_predict", 700),   # maximum answer length in tokens
         }
-        self.think = o.get("think", False)
-        self._think_supported = True
+        self.think = o.get("think", False)              # ask Qwen3 not to "think out loud"
+        self._think_supported = True                    # set to False if the model rejects the flag
 
     # ------------------------------------------------------------------ helpers
     def _post(self, path: str, payload: dict) -> dict:
+        """POST JSON to Ollama and return the JSON reply, with a readable error if Ollama is down."""
         try:
             r = requests.post(f"{self.host}{path}", json=payload, timeout=self.timeout)
         except requests.ConnectionError as e:
@@ -48,6 +58,7 @@ class OllamaClient:
         return r.json()
 
     def available_models(self) -> list[str]:
+        """Names of the models pulled into Ollama (used by the app to warn about a missing model)."""
         try:
             r = requests.get(f"{self.host}/api/tags", timeout=10)
             r.raise_for_status()
@@ -58,7 +69,12 @@ class OllamaClient:
     # ------------------------------------------------------------------ API
     def chat_stream(self, messages: list[dict], stats: dict, model: str | None = None,
                     num_ctx: int | None = None):
-        """Yield answer text as it is generated. When finished, `stats` holds the same fields as chat()."""
+        """Yield answer text as it is generated. When finished, `stats` holds the same fields as chat().
+
+        STEP 7 for the chat app: `messages` is the prompt built in answer.prepare(). Ollama sends one
+        JSON line per generated piece; each piece is yielded to the app so the answer appears as
+        it is written.
+        """
         options = dict(self.options)
         if num_ctx:
             options["num_ctx"] = num_ctx
@@ -66,11 +82,12 @@ class OllamaClient:
         if self._think_supported and self.think is not None:
             payload["think"] = bool(self.think)
         t0 = time.perf_counter()
-        raw, last, in_think, started = "", {}, False, False
+        raw, last, in_think, started = "", {}, False, False   # full text so far, last JSON line, state flags
         try:
             lines = _stream_lines(self, payload)
             first = next(lines, None)
         except OllamaError as e:
+            # some models reject the "think" flag; retry once without it
             if "think" in str(e).lower() and "think" in payload:
                 self._think_supported = False
                 payload.pop("think")
@@ -79,10 +96,11 @@ class OllamaClient:
             else:
                 raise
         def all_lines():
+            """Put back the first line we already read, then continue with the rest."""
             if first is not None:
                 yield first
             yield from lines
-        for data in all_lines():
+        for data in all_lines():                # LOOP: one iteration per piece of generated text
             last = data
             piece = data.get("message", {}).get("content", "")
             if not piece:
@@ -102,12 +120,14 @@ class OllamaClient:
                         yield tail
                 continue
             yield piece
+        # the final line carries token counts; the full text is cleaned the same way as in chat()
         content, notes = clean_output(raw, last.get("done_reason"))
         stats.update(content=content, notes=notes, prompt_tokens=last.get("prompt_eval_count"),
                      output_tokens=last.get("eval_count"), latency_s=round(time.perf_counter() - t0, 3),
                      model=last.get("model", payload["model"]))
 
     def embed(self, texts: list[str]) -> list[list[float]]:
+        """Return one embedding vector per text (used at ingest time for chunks, and per question)."""
         data = self._post("/api/embed", {"model": self.embed_model, "input": texts})
         embs = data.get("embeddings")
         if not embs or len(embs) != len(texts):
@@ -115,7 +135,10 @@ class OllamaClient:
         return embs
 
     def chat(self, messages: list[dict], model: str | None = None, num_ctx: int | None = None) -> dict:
-        """Return {'content', 'prompt_tokens', 'output_tokens', 'latency_s', 'model'}."""
+        """Return {'content', 'prompt_tokens', 'output_tokens', 'latency_s', 'model'}.
+
+        Non-streaming version of STEP 7, used by the CLI and the evaluation runs.
+        """
         options = dict(self.options)
         if num_ctx:
             options["num_ctx"] = num_ctx
@@ -148,6 +171,7 @@ class OllamaClient:
 
 
 def _stream_lines(client: "OllamaClient", payload: dict):
+    """Open a streaming /api/chat request and yield each JSON line Ollama sends back."""
     try:
         r = requests.post(f"{client.host}/api/chat", json=payload, timeout=client.timeout, stream=True)
     except requests.ConnectionError as e:

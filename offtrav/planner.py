@@ -17,6 +17,9 @@ rule carries its source. Columns:
   Source        document and section the rule comes from
 
 Working days skip Saturdays and Sundays. Holidays are not known to the planner, so it warns about them.
+
+Why code and not the LLM: date arithmetic must be exact ("15 working days before 15 Dec"),
+and a language model cannot be trusted to count working days. The LLM is never called here.
 """
 from __future__ import annotations
 
@@ -25,6 +28,7 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from pathlib import Path
 
+# the "From" column text -> the name of the date field entered in the My trip tab
 ANCHORS = {
     "registration deadline": "registration_deadline",
     "event start": "event_start",
@@ -39,6 +43,7 @@ ANCHOR_TEXT = {v: k.replace("fta", "FTA") for k, v in ANCHORS.items()}       # f
 
 @dataclass
 class Rule:
+    """One row of the deadline table."""
     step: str
     applies_to: str
     anchor: str
@@ -51,6 +56,7 @@ class Rule:
 
 
 def find_rules_file(data_dir: str | Path) -> Path | None:
+    """Find the deadline table in the document folder (first CSV/XLSX with 'deadline' in its name)."""
     d = Path(data_dir)
     if not d.exists():
         return None
@@ -61,6 +67,7 @@ def find_rules_file(data_dir: str | Path) -> Path | None:
 
 
 def _rows(path: Path) -> list[dict]:
+    """Read the table as a list of {column: value} dicts (CSV or first sheet of an XLSX)."""
     if path.suffix.lower() == ".csv":
         with path.open(encoding="utf-8-sig", newline="") as f:
             return list(csv.DictReader(f))
@@ -72,6 +79,7 @@ def _rows(path: Path) -> list[dict]:
 
 
 def load_rules(path: str | Path) -> tuple[list[Rule], list[str]]:
+    """Parse the deadline table into Rule objects; rows with errors are reported, not guessed."""
     rules, problems = [], []
     for n, r in enumerate(_rows(Path(path)), start=2):
         g = lambda k: str(r.get(k, "") or "").strip()
@@ -93,11 +101,12 @@ def load_rules(path: str | Path) -> tuple[list[Rule], list[str]]:
 
 
 def shift(d: date, days: int, working: bool, forward: bool) -> date:
+    """Move a date by a number of calendar days, or by working days (Monday to Friday only)."""
     step = timedelta(days=1 if forward else -1)
     if not working:
         return d + step * days
     moved = 0
-    while moved < days:
+    while moved < days:                     # LOOP: step one day at a time, count only weekdays
         d += step
         if d.weekday() < 5:
             moved += 1
@@ -108,10 +117,10 @@ def plan(rules: list[Rule], event_type: str, dates: dict, today: date | None = N
     """Return one item per applicable rule with a due date (or a note if its start date is missing)."""
     today = today or date.today()
     items = []
-    for r in rules:
-        if r.applies_to not in ("both", event_type):
+    for r in rules:                         # LOOP over every rule in the table
+        if r.applies_to not in ("both", event_type):    # skip rules for the other event type
             continue
-        anchor_date = dates.get(r.anchor)
+        anchor_date = dates.get(r.anchor)   # the date this rule counts from, if the user entered it
         item = {"step": r.step, "office": r.office, "condition": r.condition, "source": r.source,
                 "anchor": r.anchor,
                 "rule": (f"within {r.days} {r.day_type} days before {ANCHOR_TEXT[r.anchor]}"
@@ -135,7 +144,7 @@ def plan(rules: list[Rule], event_type: str, dates: dict, today: date | None = N
             else:
                 item["status"] = "upcoming"
         items.append(item)
-    items.sort(key=lambda i: (i["due"] is None, i["due"] or date.max))
+    items.sort(key=lambda i: (i["due"] is None, i["due"] or date.max))   # dated steps first, earliest first
     return items
 
 
@@ -158,4 +167,5 @@ def to_ics(items: list[dict], trip_name: str) -> str:
 
 
 def _ics_text(s: str) -> str:
+    """Escape text for the .ics calendar format."""
     return s.replace("\\", "\\\\").replace(";", "\\;").replace(",", "\\,").replace("\n", "\\n")

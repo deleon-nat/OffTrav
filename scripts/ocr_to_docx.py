@@ -23,6 +23,7 @@ from compare_extraction import LOW_CONF, NUM_RE, make_ocr, render_pages  # noqa:
 
 
 def main() -> int:
+    """OCR every page of a scanned PDF into a Word file, highlighting uncertain number lines."""
     ap = argparse.ArgumentParser()
     ap.add_argument("pdf")
     ap.add_argument("--out", help="Word file to write (default: '<pdf name> (OCR).docx' next to the PDF)")

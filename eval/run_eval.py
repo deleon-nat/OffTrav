@@ -9,6 +9,11 @@
 Outputs go to runs/<timestamp>_<label>/ : results.jsonl, scored.csv, case_evidence.csv,
 review.csv (fill human_correct to override), summary.md, summary.json, meta.json
 Re-score after human review:  python eval/score.py runs/<run folder>
+
+Design of the comparison: every case is asked to each mode (by default closed_book = the same
+model without documents, and rag = OffTrav), with identical settings, so the only difference is
+retrieval. Splits: dev (used while building), test (frozen, scored once), fixcheck (written
+after the test to check the fixes).
 """
 from __future__ import annotations
 
@@ -22,7 +27,7 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT))                 # so `import offtrav` works when run as a script
 
 from offtrav.config import load_config  # noqa: E402
 from offtrav.answer import Assistant  # noqa: E402
@@ -30,6 +35,7 @@ from offtrav.scoring import score_row, write_outputs  # noqa: E402
 
 
 def load_cases(path: str, split: str) -> dict:
+    """Read the JSONL test cases and keep those in the chosen split."""
     cases = {}
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -41,6 +47,7 @@ def load_cases(path: str, split: str) -> dict:
 
 
 def machine_info() -> dict:
+    """Record the hardware, so latency figures can be interpreted."""
     info = {"platform": platform.platform(), "processor": platform.processor() or platform.machine(),
             "cpu_count": os.cpu_count(), "python": platform.python_version()}
     try:
@@ -53,6 +60,7 @@ def machine_info() -> dict:
 
 
 def retrieval_only(args, cfg, cases):
+    """Search ablation: recall@1/3/6 for keywords only, embeddings only, and hybrid (no chat model)."""
     from offtrav.ollama_client import OllamaClient
     from offtrav.retrieve import Retriever
     from offtrav.scoring import _src_hit
@@ -62,7 +70,7 @@ def retrieval_only(args, cfg, cases):
     lines = ["| Retriever | " + " | ".join(f"recall@{k}" for k in ks) + " |", "|---|" + "---|" * len(ks)]
     rows = []
     scored = [c for c in cases.values() if c.get("expected_sources")]
-    for m in modes:
+    for m in modes:                           # LOOP over the three search methods
         hits_at = {k: 0 for k in ks}
         for c in scored:
             res = r.search(c["question"], top_k=max(ks), mode=m)
@@ -78,6 +86,7 @@ def retrieval_only(args, cfg, cases):
 
 
 def main() -> int:
+    """Run the chosen cases in the chosen modes, score them and write the run folder."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--index", required=True)
     ap.add_argument("--cases", required=True)
@@ -119,6 +128,8 @@ def main() -> int:
             "started": datetime.now().isoformat(timespec="seconds")}
     (run_dir / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
+    # LOOP: every case x every mode; each answer is saved as soon as it arrives, so a crash
+    # loses nothing, and failures are recorded (and scored wrong) instead of skipped
     rows = []
     t_start = time.perf_counter()
     with (run_dir / "results.jsonl").open("w", encoding="utf-8") as f:

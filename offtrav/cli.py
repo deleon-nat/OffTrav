@@ -5,6 +5,10 @@
   python -m offtrav ask "How many airfare quotations do I need?" --index index/synthetic
   python -m offtrav ask "How many airfare quotations do I need?" --index index/synthetic --show-prompt
   python -m offtrav chat --index index/synthetic
+
+`ingest` is the pre-processing step (build the index once). `ask` answers one question.
+`chat` is the same as the web app's Ask tab, in the terminal: it keeps the conversation
+history and sends the recent turns with every follow-up question.
 """
 from __future__ import annotations
 
@@ -17,6 +21,7 @@ from .ollama_client import OllamaClient, OllamaError
 
 
 def _print_answer(r: dict, show_sources: bool) -> None:
+    """Print the answer, its sources, any warnings from the checks, and timing."""
     print("\n" + r["answer"].strip() + "\n")
     if r["citations"]:
         print("Sources:")
@@ -47,6 +52,7 @@ def print_prompt(state: dict) -> None:
 
 
 def cmd_check(cfg: dict) -> int:
+    """`check`: confirm Ollama is running and both models are pulled."""
     from .prompts import PROMPT_VERSION
     print(f"Chat model {cfg['ollama']['chat_model']}, prompt {PROMPT_VERSION}")
     client = OllamaClient(cfg)
@@ -63,6 +69,7 @@ def cmd_check(cfg: dict) -> int:
 
 
 def cmd_ingest(cfg: dict, args) -> int:
+    """`ingest`: PRE-PROCESSING. Read the documents, chunk, embed and save the index (retrieve.build_index)."""
     from .retrieve import build_index
     client = None if args.no_embed else OllamaClient(cfg)
     m = build_index(args.data, args.index, cfg, client, org_name=args.org, embed=not args.no_embed)
@@ -75,9 +82,10 @@ def cmd_ingest(cfg: dict, args) -> int:
 
 
 def cmd_ask(cfg: dict, args) -> int:
+    """`ask`: answer one question. STEP 1 for the command line: the question is args.question."""
     from .answer import Assistant
     a = Assistant(cfg, args.index)
-    if args.show_prompt:
+    if args.show_prompt:                    # show the exact model input before answering
         print_prompt(a.prepare(args.question, mode=args.mode))
     r = a.ask(args.question, mode=args.mode)
     if args.json:
@@ -88,26 +96,29 @@ def cmd_ask(cfg: dict, args) -> int:
 
 
 def cmd_chat(cfg: dict, args) -> int:
+    """`chat`: a conversation in the terminal, with follow-up questions."""
     from .answer import Assistant
     a = Assistant(cfg, args.index)
     print(f"OffTrav ({a.org}) - type your question, or 'exit'.")
-    history: list[dict] = []
-    while True:
+    history: list[dict] = []                # CONVERSATION MEMORY: every user and assistant message so far
+    while True:                             # LOOP: one iteration per question
         try:
-            q = input("\nYou: ").strip()
+            q = input("\nYou: ").strip()   # STEP 1: the question is read into `q`
         except (EOFError, KeyboardInterrupt):
             break
         if q.lower() in {"exit", "quit"}:
             break
         if not q:
             continue
-        r = a.ask(q, history=history)
+        r = a.ask(q, history=history)       # STEPS 2-8 (answer.py); history makes follow-ups work
         _print_answer(r, args.show_sources)
+        # STEP 9: remember this turn, so the next question can refer back to it
         history += [{"role": "user", "content": q}, {"role": "assistant", "content": r["answer"]}]
     return 0
 
 
 def main(argv=None) -> int:
+    """Parse the command line and run the chosen command."""
     ap = argparse.ArgumentParser(prog="offtrav")
     ap.add_argument("--config", default=None, help="path to config.yaml")
     sub = ap.add_subparsers(dest="cmd", required=True)

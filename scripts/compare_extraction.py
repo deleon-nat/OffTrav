@@ -41,6 +41,7 @@ LOW_CONF = 0.85
 
 
 def words_to_int(text: str) -> int | None:
+    """Convert number words ("thirty") to an integer, or None if the text is not a number word."""
     total, cur = 0, 0
     for w in re.split(r"[\s-]+", text.lower().replace(" and ", " ")):
         if w in ONES:
@@ -55,6 +56,7 @@ def words_to_int(text: str) -> int | None:
 
 
 def norm(n: str) -> str:
+    """Normalise a number string so 1,000 and 1000.00 compare equal."""
     n = n.replace(",", "")
     return n.rstrip("0").rstrip(".") if "." in n else n
 
@@ -68,10 +70,12 @@ def content_numbers(text: str) -> Counter:
 
 
 def numbers(text: str) -> Counter:
+    """Count every number in a text."""
     return Counter(norm(m) for m in NUM_RE.findall(text))
 
 
 def context(text: str, n: str, width: int = 45) -> str:
+    """A short snippet of text around a number, so the reviewer can find it on the page."""
     m = re.search(rf"(?<![\d,]){re.escape(n)}(?![\d])", text.replace(",", ""))
     flat = text.replace(",", "")
     if not m:
@@ -80,6 +84,7 @@ def context(text: str, n: str, width: int = 45) -> str:
 
 
 def word_digit_mismatches(text: str) -> list[tuple[str, str, str]]:
+    """Find places like "thirty (50)" where the number word and the digits disagree."""
     out = []
     for words, digits in WORD_DIGIT.findall(text):
         v = words_to_int(words)
@@ -93,10 +98,12 @@ def word_digit_mismatches(text: str) -> list[tuple[str, str, str]]:
 def make_ocr(engine: str = "auto"):
     """Return (ocr function, engine name). Each OCR function maps a page image to [(line text, confidence)]."""
     def rapid():
+        """Set up RapidOCR (used when Tesseract is not installed)."""
         from rapidocr_onnxruntime import RapidOCR
         eng = RapidOCR()
 
         def run(img):
+            """OCR one page image and return (text, confidence) per line."""
             import numpy as np
             res, _ = eng(np.array(img.convert("RGB")))
             lines = sorted(res or [], key=lambda r: (round(r[0][0][1] / 12), r[0][0][0]))
@@ -104,10 +111,12 @@ def make_ocr(engine: str = "auto"):
         return run, "RapidOCR"
 
     def tess():
+        """Set up Tesseract OCR."""
         import pytesseract
         pytesseract.get_tesseract_version()
 
         def run(img):
+            """OCR one page image and return (text, confidence) per line."""
             g = img.convert("L")
             d = pytesseract.image_to_data(g, config="--psm 4", output_type=pytesseract.Output.DICT)
             lines: dict = {}
@@ -128,6 +137,7 @@ def make_ocr(engine: str = "auto"):
 
 
 def render_pages(path: Path, dpi: int = 300):
+    """Render each PDF page to an image for OCR."""
     import pypdfium2 as pdfium
     pdf = pdfium.PdfDocument(str(path))
     for i in range(len(pdf)):
@@ -135,6 +145,7 @@ def render_pages(path: Path, dpi: int = 300):
 
 
 def read_pdf(path: Path, ocr) -> list[dict]:
+    """For each page: the stored text layer, a second loader, and a fresh OCR reading."""
     pages = []
     layer = [(p.extract_text() or "") for p in PdfReader(str(path)).pages]
     try:                                       # a second reader of the same text layer (is our loader at fault?)
@@ -158,6 +169,7 @@ def read_pdf(path: Path, ocr) -> list[dict]:
 
 
 def review_rows(name: str, pages: list[dict], have_ocr: bool) -> list[dict]:
+    """Build the review list: only numbers that disagree between readings, plus low-confidence lines."""
     rows = []
     for p in pages:
         add = lambda check, a="", b="", ctx="": rows.append(
@@ -196,6 +208,7 @@ def accuracy(pages: list[dict], truth: list[str]) -> dict:
 
 
 def main() -> int:
+    """Compare the readings of one or more PDFs and write the review CSV."""
     ap = argparse.ArgumentParser()
     ap.add_argument("target", help="a PDF or a folder of PDFs")
     ap.add_argument("--truth", help="original PDF with correct text (synthetic test only)")

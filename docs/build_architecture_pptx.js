@@ -41,7 +41,7 @@ pres.defineSlideMaster({
   objects: [
     { placeholder: { options: { name: "title", type: "title", x: 0.5, y: 0.3, w: 9.5, h: 0.5,
         fontSize: 22, bold: true, color: NAVY, align: "left", valign: "middle", margin: 0 }, text: "" } },
-    { text: { text: "Stat 280 Capstone  |  N. De Leon  |  Checkpoint 1", options: {
+    { text: { text: "Stat 280 Capstone  |  N. De Leon  |  Final report", options: {
         x: 8.33, y: 0.3, w: 4.5, h: 0.5, fontSize: 10, color: BLACK, align: "right", valign: "middle", margin: 0 } } },
   ],
 });
@@ -93,14 +93,14 @@ const F = { x: 0.5, y: 1.0, w: 12.33, h: 5.78 };
 const HEAD = 0.36, LABEL_W = 0.42;
 const LANES = [
   { key: "index", title: "INDEXING", h: 1.45 },
-  { key: "answer", title: "ANSWERING", h: 2.62 },
-  { key: "eval", title: "EVALUATION", h: F.h - HEAD - 1.45 - 2.62 },
+  { key: "answer", title: "ANSWERING", h: 2.72 },
+  { key: "eval", title: "EVALUATION", h: F.h - HEAD - 1.45 - 2.72 },
 ];
 // frame = platform boundary
 s.addShape(pres.shapes.RECTANGLE, { x: F.x, y: F.y, w: F.w, h: F.h, fill: { color: WHITE },
   line: { color: NAVY, width: 1.5, dashType: "dash" }, objectName: "platform_boundary" });
 s.addText([{ text: "Platform boundary: ", options: { bold: true } },
-           { text: "Ollama local on the user's laptop (ThinkPad T14, 32 GB RAM, CPU only). No external services; documents, prompts and answers stay on the machine.", options: {} }],
+           { text: "one laptop (ThinkPad T14, 32 GB RAM, CPU only). Streamlit and Ollama on localhost only, no cloud API: documents, prompts and answers never leave it.", options: {} }],
   { x: F.x + 0.12, y: F.y, w: F.w - 0.24, h: HEAD, fontSize: 10, color: BLACK, valign: "middle", margin: 0,
     isTextBox: true, objectName: "boundary_label" });
 let ly = F.y + HEAD;
@@ -131,10 +131,10 @@ s.addText("Ollama server (localhost)", { shape: pres.shapes.RECTANGLE, x: OX - 0
 // ------------------------------------------------------------------ lane 1: indexing
 const iy = LI.y + 0.42, ih = 0.78, icy = iy + ih / 2;
 node("docs", col(0), iy, SW, ih, "Travel documents");
-note(col(0) - 0.2, LI.y + 0.12, SW + 0.4, "PDF, DOCX, XLSX, CSV");
+note(col(0) - 0.2, LI.y + 0.12, SW + 0.4, "PDF, DOCX, XLSX, CSV, MD");
 node("safe", col(1), iy, SW, ih, "Scanned PDF check");
-node("process", col(2), iy, SW, ih, "Split into passages");
-node("store", col(3), iy - 0.04, SW, ih + 0.08, "Search index");
+node("process", col(2), iy, SW, ih, "Split into passages (~900 characters)", 10);
+node("store", col(3), iy - 0.04, SW, ih + 0.08, [{ text: "Search index", options: { bold: true } }, { text: "chunks.jsonl + embeddings.npy", options: { fontSize: 8 } }]);
 node("llm", OX, iy, OW, ih, [{ text: "Embedding model", options: { bold: true } }, { text: "nomic-embed-text", options: { fontSize: 9 } }]);
 for (let i = 0; i < 3; i++) seg(col(i) + SW, icy, col(i + 1), icy);
 seg(col(3) + SW, icy, OX, icy, true, true);
@@ -146,30 +146,38 @@ node("term", col(0), ay, SW, ah, "Employee asks a question");
 node("process", col(1), ay, SW, ah, "Chat app (Streamlit)");
 node("safe", col(2), ay, SW, ah, "Input check");
 node("process", col(3), ay, SW, ah, "Hybrid search (keyword and embeddings)", 10);
-node("safe", col(4), ay, SW, ah, "Remove suspicious passages", 10);
-node("process", col(5), ay, SW, ah, "Build prompt with top 6 sources", 10);
-node("llm", OX, ay, OW, ah, [{ text: "Answer model", options: { bold: true } }, { text: "qwen3:30b", options: { fontSize: 9 } }]);
+node("safe", col(4), ay, SW, ah, "Remove suspicious passages; no-evidence gate", 9.5);
+node("process", col(5), ay, SW, ah, "Build prompt: rules + last 2 turns + 6 sources", 9.5);
+node("llm", OX, ay, OW, ah, [{ text: "Answer model", options: { bold: true } }, { text: "qwen3:30b-instruct", options: { fontSize: 9 } }]);
 for (let i = 0; i < 5; i++) seg(col(i) + SW, acy, col(i + 1), acy);
 seg(col(5) + SW, acy, OX, acy);
 seg(mid(3), ay, mid(3), iy + ih + 0.04);                // search reads the index
 note(mid(3) + 0.08, LA.y + 0.06, 1.3, "reads index", "left");
 
-const by = ay + ah + 0.52, bh = 0.72, bcy = by + bh / 2;
+const by = ay + ah + 0.62, bh = 0.72, bcy = by + bh / 2;
 node("safe", col(5), by, SW, bh, "Check citations and numbers", 10);
-node("term", col(0), by, SW, bh, "Answer with sources and warnings", 10);
+node("term", col(3), by, SW, bh, "Answer with sources and warnings", 10);
+node("store", col(1), by - 0.04, SW, bh + 0.08, [{ text: "Conversation history", options: { bold: true } }, { text: "session state", options: { fontSize: 8 } }], 9.5);
+node("process", col(0) - 0.05, by, SW - 0.1, bh, "Planner, contacts: code only, no LLM", 8.5);
 poly([[OX + OW / 2, ay + ah], [OX + OW / 2, bcy], [col(5) + SW, bcy]]);
 note(OX - 0.05, ay + ah + 0.12, OW / 2 - 0.05, "draft answer", "right");
-seg(col(5), bcy, col(0) + SW, bcy);
-note(col(1), bcy - 0.25, 4 * SW + 3 * GAP, "shown in the chat app");
+seg(col(5), bcy, col(3) + SW, bcy);                       // checked answer is shown
+seg(col(3), bcy, col(1) + SW, bcy);                       // and saved in the history
+note(col(2) - 0.05, bcy - 0.25, SW + 0.1, "saved");
+seg(mid(1), by - 0.04, mid(1), ay + ah);                  // history goes with the next question
+note(mid(1) + 0.06, ay + ah + 0.12, 1.3, "follow-ups", "left");
+seg(mid(0) - 0.05, ay + ah, mid(0) - 0.05, by);           // the other tabs
+poly([[col(4) + 0.35, ay + ah], [col(4) + 0.35, by + 0.16], [col(3) + SW, by + 0.16]]);   // gate: refusal without the model
+note(col(4) + 0.42, by - 0.33, 1.9, "nothing relevant: fixed refusal, no LLM call", "left");
 
 // ------------------------------------------------------------------ lane 3: evaluation
 const ey = LE.y + 0.22, eh = LE.h - 0.44, ecy = ey + eh / 2;
-node("doc", col(0), ey, SW, eh, "26 test cases with expected answers", 10);
+node("doc", col(0), ey, SW, eh, "32 test cases with expected answers", 9.5);
 const half = (eh - 0.1) / 2;
-node("process", col(1), ey, 2 * SW + GAP, half, "Baseline: same model, no documents", 10);
-node("process", col(1), ey + half + 0.1, 2 * SW + GAP, half, "OffTrav: full pipeline", 10);
+node("process", col(1), ey, 2 * SW + GAP, half, "Baseline: same model, no documents", 9.5);
+node("process", col(1), ey + half + 0.1, 2 * SW + GAP, half, "OffTrav (also: every document pasted in)", 9.5);
 node("process", col(3), ey, SW, eh, "Automatic scoring", 10);
-node("process", col(4), ey, SW, eh, "Author review of every score", 10);
+node("process", col(4), ey, SW, eh, "Review of scores by me", 10);
 node("doc", col(5), ey, SW, eh, "Results and case evidence", 10);
 seg(col(0) + SW, ey + half / 2, col(1), ey + half / 2);
 seg(col(0) + SW, ey + half * 1.5 + 0.1, col(1), ey + half * 1.5 + 0.1);
@@ -184,17 +192,17 @@ s.addText("Metrics: answer correctness (primary), citation accuracy, retrieval r
 // ------------------------------------------------------------------ notation (black text)
 s.addText([
   { text: "Notation: ", options: { bold: true } },
-  { text: "rectangle = processing step; cylinder = stored index; wavy edge = documents; rounded ends = start or end. " +
-          "Navy = language model call on Ollama; gold = safeguard; all other steps are deterministic Python code.", options: {} },
+  { text: "rectangle = step; cylinder = stored data; wavy edge = documents; rounded ends = start or end. " +
+          "Navy = language model on Ollama; gold = safeguard; all else is deterministic Python. No agent: no tool is chosen by the LLM.", options: {} },
 ], { x: 0.5, y: 6.88, w: 12.33, h: 0.3, fontSize: 9.5, color: BLACK, margin: 0, valign: "middle", isTextBox: true,
      objectName: "notation" });
 
 s.addNotes("Indexing runs once per document update: documents are checked (scanned PDFs flagged for proofreading), split into " +
   "about 900-character passages, and stored with their embeddings. For each question: input check (length cap, injection flag), " +
   "hybrid search (BM25 plus embeddings, fused by reciprocal rank, at most 3 passages per file), removal of passages with " +
-  "instruction-like text, prompt with rules and the top 6 numbered sources, answer from qwen3:30b at temperature 0, then " +
+  "instruction-like text, prompt with rules, the last 2 turns and the top 6 numbered sources, answer from qwen3:30b-instruct at temperature 0, then " +
   "citation validation and a check that every number appears in the sources. Evaluation runs the baseline and the full " +
-  "pipeline on the same 26 cases.");
+  "pipeline on the same cases.");
 
 (async () => {
   await pres.writeFile({ fileName: OUT });

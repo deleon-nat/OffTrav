@@ -138,6 +138,7 @@ POLICY = [
 
 
 def make_policy_pdf(path: Path) -> None:
+    """Write the synthetic office order (PDF): the main foreign travel rules."""
     styles = getSampleStyleSheet()
     story = []
     for kind, text in POLICY:
@@ -161,6 +162,7 @@ def make_policy_pdf(path: Path) -> None:
 # 2. Airline booking guide (DOCX)
 # --------------------------------------------------------------------------------------
 def make_booking_docx(path: Path) -> None:
+    """Write the synthetic booking guide (Word): headings, numbered steps and a table."""
     d = Document()
     d.add_heading("Guide on Booking Airline Tickets for BCB Employees", 0)
     d.add_paragraph("SYNTHETIC DOCUMENT FOR TESTING: fictional organisation (Biringan Central Bank).")
@@ -236,6 +238,7 @@ ALLOWANCES = [
 
 
 def make_rates_xlsx(path: Path) -> None:
+    """Write the synthetic allowance workbook (Excel): rates, hotel ceilings and rules sheets."""
     wb = Workbook()
     ws = wb.active
     ws.title = "Allowances"
@@ -317,6 +320,7 @@ CONTACTS = [
 
 
 def make_contacts_csv(path: Path) -> None:
+    """Write the synthetic contact list (CSV): office, e-mail, when to contact, subject line."""
     with path.open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(["Topic", "Office", "Email", "When to contact", "Suggested subject line"])
@@ -442,6 +446,7 @@ def make_deadlines_csv(path: Path) -> None:
 
 
 def main() -> None:
+    """Create every synthetic document in data/sample_synthetic."""
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="data/sample_synthetic")
     out = Path(ap.parse_args().out)

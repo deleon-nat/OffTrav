@@ -1,263 +1,345 @@
-# OffTrav: local RAG assistant for official foreign travel
+# OffTrav: your official travel buddy
 
-OffTrav answers employees' questions about official foreign travel (what to prepare, which forms,
-whom to email, which steps, by when) **only from the organisation's own travel documents**, cites
-the passage it used, and says so when the documents do not cover a question. Everything runs locally
-on **Ollama**, so no document, prompt or answer leaves the laptop.
+OffTrav is a local chatbot for employees preparing for official foreign travel: what to prepare, which
+forms to use, whom to e-mail, which steps to take and by when. It answers **only from the organisation's own
+travel documents**, cites the passage behind each statement, and says so when the documents do not cover a
+question. It runs entirely on one laptop with **Ollama**, so no document, prompt or answer leaves the machine.
 
-Stat 280 capstone. Advanced component: **retrieval-augmented generation (RAG)**.
+Stat 280 Applied Generative AI capstone, Nathaniel De Leon. GenAI component: **retrieval-augmented generation
+(RAG)**. No agent framework is used (see section 4.4).
 
-```
-offtrav/            core package (ingest, retrieve, answer, safeguards, scoring, CLI)
-app.py              Streamlit chat UI
-config.yaml         model and retrieval settings (recorded in every evaluation run)
-data/sample_synthetic/   shareable FICTIONAL corpus ("Biringan Central Bank"): PDF, DOCX, XLSX, CSV, MD
-data/private/       real documents go here; git-ignored, never submitted
-eval/               test cases, evaluation runner, re-scoring
-scripts/            corpus/case generators, PDF text audit
-tests/              automated tests + a stand-in Ollama server for CI-style checks
-docs/               architecture diagram (PowerPoint, PNG) and its build script
-```
+This ZIP contains only **synthetic** documents (a fictional "Biringan Central Bank"). The real BSP documents
+were used with permission on the author's laptop only and are not included.
 
-## 1. Requirements
+---
 
-| Item | Used for | Notes |
-|---|---|---|
-| Ollama ≥ 0.9 | local model server | https://ollama.com (Windows, macOS, Linux) |
-| `qwen3:30b-instruct` (~19 GB) | answer generation | Mixture-of-experts (3B active parameters), non-thinking version; runs on CPU with 32 GB RAM. Do not use plain `qwen3:30b`: it is the thinking version and spends its output on reasoning. |
-| `nomic-embed-text` (~0.3 GB) | embeddings for retrieval | |
-| Python 3.10+ | everything else | |
-| Optional: `llama3.1:8b` | faster fallback | Lower quality; record it if you switch |
+## Quick start (after unzipping)
 
-Do **not** use `qwen3:30b-a3b-fp16` (~61 GB): it will not fit in 32 GB RAM.
-On CPU-only laptops expect answers to take from tens of seconds to a few minutes; the evaluation records the actual latency.
-
-## 2. Install (Windows PowerShell; macOS/Linux commands are the same except the venv activation)
+Needs: Python 3.10 or newer, [Ollama](https://ollama.com), about 20 GB of free disk and 32 GB of RAM
+(see section 1 for a smaller model if the machine has less).
 
 ```powershell
+# 1. models (one time; about 19 GB + 0.3 GB)
 ollama pull qwen3:30b-instruct
 ollama pull nomic-embed-text
 
+# 2. Python packages
 cd offtrav
-python -m venv .venv
-.venv\Scripts\Activate.ps1          # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 
-python -m offtrav check             # confirms Ollama is running and both models are pulled
-```
+# 3. check that Ollama is running and both models are there
+python -m offtrav check
 
-## 3. Build the index and chat
-
-```powershell
-# shareable synthetic corpus
+# 4. PRE-PROCESSING: build the search index from the synthetic documents (about a minute)
 python -m offtrav ingest --data data/sample_synthetic --index index/synthetic --org "Biringan Central Bank (synthetic)"
 
-python -m offtrav ask "How many airfare quotations do I need?" --index index/synthetic --show-sources
-python -m offtrav ask "How many airfare quotations do I need?" --index index/synthetic --show-prompt   # print the exact model input
-python -m offtrav chat --index index/synthetic
-streamlit run app.py                # browser UI at http://localhost:8501 (local only; see .streamlit/config.toml)
-
-# for a class demo or a recording: only the synthetic documents can be selected
-$env:OFFTRAV_DEMO="1"; streamlit run app.py
+# 5. open the chat app in the browser (http://localhost:8501)
+python -m streamlit run app.py
 ```
 
-**What is sent to the model.** For each question the code builds two or more chat messages:
-(1) a *system* message with the fixed rules (`offtrav/prompts.py`) and today's date; (2) up to two earlier
-question-answer pairs, as separate messages, when chatting; (3) a *user* message with the numbered passages
-`[S1]`, `[S2]` ... each labelled with file and page or row, followed by the employee's question. `--show-prompt`
-prints this exactly, plus which file each `[S#]` came from. If no passage matches the question at all, the model is
-not called and OffTrav answers that it could not find the information and whom to ask.
+Try: *"It's my first official trip abroad. What do I need to prepare?"*, then the follow-up
+*"What about the deadline to liquidate?"*. Or in the terminal, without the browser:
 
-**Where the index lives.** `index/<name>/chunks.jsonl` (one passage per line, with file, page/row and text),
-`embeddings.npy` (NumPy matrix from `nomic-embed-text`) and `manifest.json` (file hashes and settings). Keyword search
-(BM25) is computed in memory from `chunks.jsonl` by `offtrav/retrieve.py`; no external database is used.
+```powershell
+python -m offtrav chat --index index/synthetic                       # conversation with follow-ups
+python -m offtrav ask "How many airfare quotations do I need?" --index index/synthetic --show-prompt
+```
+
+`--show-prompt` prints the exact model input (rules, recent turns, numbered sources, question), which is
+useful for the code review. To run the automated tests without any model: `python -m pytest -q`.
+
+---
+
+## Project layout
+
+```
+offtrav/                  core package (all GenAI code is here)
+  ingest.py               PRE-PROCESSING: read PDF/DOCX/XLSX/CSV/MD and split into passages (no LLM)
+  retrieve.py             PRE-PROCESSING: embed + save the index; AT QUESTION TIME: hybrid search
+  answer.py               the question-answering pipeline (prepare -> model -> finalize)
+  prompts.py              the system prompt (12 rules), source formatting, baseline prompt
+  ollama_client.py        HTTP calls to the local Ollama server (embeddings and chat)
+  safeguards.py           injection filter, citation check, per-sentence number check
+  planner.py              My trip deadline planner (deterministic, no LLM)
+  contacts.py             Contacts tab: contact list and mailto: links (no LLM)
+  scoring.py              evaluation scoring rules and summaries
+  cli.py, config.py       command line and config.yaml loading
+app.py                    Streamlit chat app (Ask, My trip, Contacts, Documents)
+config.yaml               models, retrieval and safeguard settings (recorded in every evaluation run)
+data/sample_synthetic/    the synthetic document set (safe to share)
+data/private/             real documents go here on the owner's laptop; empty in this ZIP
+eval/                     test cases (32), evaluation runner, re-scoring
+evidence/synthetic/       outputs of the reported evaluation runs (synthetic documents only)
+scripts/                  synthetic corpus and case generators, scanned-PDF tools
+tests/                    21 automated tests + a stand-in Ollama server (no model needed)
+docs/                     architecture diagram (PNG, editable PowerPoint) and its build script
+static/, .streamlit/      fonts, styles and local-only Streamlit settings
+```
+
+---
+
+## 1. Requirements and hardware
+
+| Item | Used for | Notes |
+|---|---|---|
+| Ollama 0.9 or newer | local model server on `localhost:11434` | Windows, macOS or Linux |
+| `qwen3:30b-instruct` (~19 GB, 4-bit) | writes the answers | Mixture of experts, about 3B active parameters, so it runs on a CPU. Use the **instruct** version; plain `qwen3:30b` is the "thinking" version and spends minutes reasoning before it answers. |
+| `nomic-embed-text` (~0.3 GB) | embeddings for search | |
+| Python 3.10+ and `requirements.txt` | everything else | requests, numpy, PyYAML, pypdf, python-docx, openpyxl, streamlit, pytest |
+
+**Tested on:** Lenovo ThinkPad T14, AMD, 16 threads, 32 GB RAM, no GPU, Windows 11, Ollama 0.40.5.
+Typical time per answer there: about 25 seconds on the synthetic documents, 37 to 52 seconds on the larger
+real document set. No internet is needed after the models are pulled, and there are no API keys or secrets.
+
+**Less memory?** Switch to a smaller model without editing any file, then run as usual (answers are weaker,
+and the reported results are for `qwen3:30b-instruct`):
+
+```powershell
+ollama pull llama3.1:8b
+$env:OFFTRAV_OLLAMA_CHAT_MODEL = "llama3.1:8b"      # macOS/Linux: export OFFTRAV_OLLAMA_CHAT_MODEL=llama3.1:8b
+```
+
+**Optional:** a virtual environment (`python -m venv .venv`, then `.venv\Scripts\Activate.ps1` or
+`source .venv/bin/activate`). If the `streamlit` command is "not recognized", use `python -m streamlit`.
+
+## 2. Running it
+
+```powershell
+python -m offtrav ingest --data data/sample_synthetic --index index/synthetic --org "Biringan Central Bank (synthetic)"
+python -m streamlit run app.py                         # browser UI, local only
+$env:OFFTRAV_DEMO = "1"; python -m streamlit run app.py   # demo mode: only the synthetic documents can be selected
+```
 
 The chat app has four tabs:
 
-| Tab | What it does |
-|---|---|
-| Ask | Grounded chat. Answers appear as they are written, with sources and warnings. Thumbs up/down are saved to `runs/feedback.jsonl`; "Save this chat" downloads the conversation. |
-| My trip | Deadline planner: enter the event type and dates, get every deadline as a date (working days skip weekends), tick steps off, download an Outlook calendar file (.ics) or a CSV list. Rules come from a deadline table in `<documents>/_planner/` (any CSV/XLSX with "Deadlines" in the name); no language model is involved. |
-| Contacts | The contact list from the documents, with "Write email" buttons that open Outlook with the suggested subject filled in. |
-| Documents | Which files are indexed, passages per file, and ingestion warnings. |
+| Tab | What it does | LLM? |
+|---|---|---|
+| Ask | Chat with follow-ups. Answers stream in, with sources, the cited passages, "How the numbers were checked", and any warnings. Sidebar: switch to "The model alone" to see the baseline live. | yes |
+| My trip | Deadline planner: enter event type and dates; every deadline is computed from the deadline table in `data/sample_synthetic/_planner/` (working days skip weekends). Download an Outlook calendar file. | no |
+| Contacts | The contact list, with "Write email" buttons that open a draft with the subject line filled in. | no |
+| Documents | What is indexed, passages per file, and extraction warnings (for example scanned pages). | no |
 
-Files and folders whose names start with `_` (for example `_planner/` or `_pdf_audit.csv`) are not indexed for answers.
+---
 
-Real documents (stay on the laptop):
+## 3. Configuration (`config.yaml`)
+
+Every value can be overridden with an environment variable `OFFTRAV_<SECTION>_<KEY>`.
+
+| Setting | Value | Meaning |
+|---|---|---|
+| `ollama.chat_model` | `qwen3:30b-instruct` | answer model |
+| `ollama.embed_model` | `nomic-embed-text` | embedding model (the index must be rebuilt if this changes) |
+| `ollama.temperature`, `seed`, `top_p` | 0, 42, 1 | repeatable answers |
+| `ollama.num_ctx`, `num_predict` | 8192, 700 | context window and maximum answer length (tokens) |
+| `ollama.think` | false | stop Qwen3 printing its reasoning |
+| `retrieval.mode` | `hybrid` | `hybrid` (BM25 + embeddings), `bm25` or `dense` |
+| `retrieval.top_k` | 6 | passages given to the model |
+| `retrieval.max_per_source` | 3 | at most 3 passages from one file |
+| `retrieval.rrf_k` | 60 | reciprocal rank fusion constant |
+| `retrieval.expand_neighbors` | 4 | add up to 4 passages next to the best hits (keeps numbered steps together) |
+| `retrieval.table_default_rows` | true | add a table's "not listed" rows when one of its rows is found |
+| `retrieval.chunk_chars`, `chunk_overlap` | 900, 150 | passage size and overlap (characters) |
+| `safeguards.*` | on | injection filter, citation check, number check, no-evidence gate |
+| `conversation.history_turns` | 2 | previous question-answer pairs sent with each new question |
+| `conversation.today` | empty | date given to the model; fixed for evaluation runs |
+
+---
+
+## 4. Code walkthrough (for the code review)
+
+Search the code for **`STEP`**: every step below is marked with that word in a comment.
+
+### 4.1 Pre-processing (run once per document update)
+
+`python -m offtrav ingest ...` → `cli.cmd_ingest` → `retrieve.build_index`
+
+| | What happens | Where |
+|---|---|---|
+| P1 | read every file in the folder (PDF pages, Word sections and tables, spreadsheet rows, CSV rows, Markdown sections) | `ingest.load_corpus`, `load_pdf`, `load_docx`, `load_xlsx`, `load_csv`, `load_markdown` |
+| P2 | split long text into ~900-character passages with 150 characters of overlap; table rows stay whole as "Header: value; ..." | `ingest.split_text`, `_row_text` |
+| P3 | embed every passage with `nomic-embed-text` (prefix `search_document:`), normalise the vectors | `retrieve._embed_texts` → `ollama_client.embed` |
+| P4 | save `index/synthetic/chunks.jsonl`, `embeddings.npy`, `manifest.json` | `retrieve.build_index` |
+
+The "vector store" is a NumPy matrix on disk. With a few hundred passages an exact search takes milliseconds,
+so no vector database is needed.
+
+### 4.2 One question, step by step
+
+| Step | What happens | Where |
+|---|---|---|
+| 1 | the question is assigned to the variable `question` (chat box or starter button) | `app.py`, `typed = st.chat_input(...)`, `question = typed or question` (terminal: `cli.cmd_chat`, variable `q`) |
+| 2 | trim, cap the length, flag injection attempts in the question | `answer.Assistant.prepare` |
+| 3 | a short follow-up is combined with the previous question **for searching only** | `prepare`, `q_for_search` |
+| 4 | hybrid search: BM25 keyword scores + cosine similarity of embeddings, merged by reciprocal rank fusion, top 6 with at most 3 per file, then neighbour passages and table catch-all rows are added | `retrieve.Retriever.search`, `_expand` |
+| 5 | passages with instruction-like text are removed; if nothing relevant is left, the fixed refusal is returned **without calling the model** | `safeguards.quarantine_chunks`, `Assistant._no_evidence` |
+| 6 | the prompt is built: system message (12 rules + today's date) → last 2 question-answer pairs → user message with numbered sources `[S1]..[Sn]` and the question | `prepare`, `prompts.RAG_SYSTEM`, `prompts.format_sources`, `prompts.RAG_USER` |
+| 7 | `qwen3:30b-instruct` writes the answer; the app shows it as it streams | `Assistant.stream_text` → `ollama_client.chat_stream` (CLI/evaluation: `chat`) |
+| 8 | every `[S#]` must point to a supplied passage; every number in each sentence is checked against the passage that sentence cites | `Assistant.finalize`, `safeguards.check_citations`, `check_claims` |
+| 9 | the answer and its checks are appended to the conversation history | `app.py`, `st.session_state.messages.append(...)` |
+
+Loops worth pointing out: the BM25 scoring loop over passages (`BM25.scores`), the fusion and per-file cap
+loop (`search`), the neighbour loop (`_expand`), the streaming loop over generated pieces (`chat_stream`),
+and the claim/number loops in `check_claims`. There is no loop of model calls: **one question = one LLM call**
+(plus one embedding call for the question).
+
+### 4.3 Follow-up questions and conversation memory
+
+1. The app keeps the whole conversation in `st.session_state.messages` (Streamlit reruns the script on every
+   click, so state must live there). Each item is `{"role": "user"|"assistant", "content": ...}`.
+2. When a new question arrives, `app.py` passes all earlier messages as `history` to `assistant.prepare`.
+3. `Assistant._history_messages` keeps the last `history_turns` = 2 pairs (4 messages) and puts them between
+   the system message and the new user message, so the model sees the recent conversation.
+4. Because a follow-up such as "What about the deadline to liquidate?" is too short to search on its own,
+   `prepare` searches with the previous question + the follow-up (STEP 3). The model still sees the follow-up
+   exactly as typed.
+5. After the answer, STEP 9 appends it to `st.session_state.messages`; "New chat" clears it.
+
+`python -m offtrav chat` does the same in the terminal with a plain `history` list (`cli.cmd_chat`).
+
+### 4.4 Why no agent
+
+The tool-like features (deadline planner, contact list, e-mail draft) are fixed code paths the user opens in
+their own tab; the LLM never chooses or calls a tool. Deadlines need exact working-day arithmetic, which code
+does reliably and a model does not, and a single grounded call is easier to test and to explain. An agent
+loop would add latency on a CPU (several model calls per question) and new failure modes without improving
+the answers measured here. See the written report for the comparison.
+
+---
+
+## 5. Evaluation
 
 ```powershell
-python scripts/compare_extraction.py data/private    # list only the numbers a person should check
-python -m offtrav ingest --data data/private --index index/private --org "BSP (DES)"
-```
-
-**Scanned PDFs.** A scanned office order carries the scanner's own OCR text, and the loader indexes that text
-as it is, so a misread "30" becomes "50" in every answer. `scripts/compare_extraction.py` reads each page
-three ways (the stored text with two PDF libraries, and a fresh OCR of the page image) and lists a number for
-review only when the readings disagree, when the document's words and digits disagree ("thirty (50)"), or when the
-fresh OCR is unsure. Fix the flagged values (retype the passage into a `.docx` in the same folder) before indexing.
-On a degraded synthetic scan of the office order (3 pages, 62 numbers) it listed 33 items and caught all 9 misread
-numbers; on the clean digital PDF it listed 7 items, all false alarms. A fresh OCR is not more accurate by itself
-(it read fewer numbers correctly than the stored text on that scan), so it is used as a second opinion, not a
-replacement. What it cannot catch: a number both readings get wrong the same way, a value attached to the wrong
-table row, or a missing line. A scanned PDF with **no** stored text (the loader warns about it) is invisible to OffTrav: run
-`python scripts/ocr_to_docx.py "<file>.pdf"`, which writes `<file> (OCR).docx` with the lines to proofread
-highlighted, then move the PDF into `_originals/`. Tables rarely survive OCR; retype them as a small spreadsheet.
-The older `scripts/check_pdf_text.py` still lists every number if a full proofread is wanted. Save `.doc` files as `.docx`. Optional OCR engine: `pip install rapidocr-onnxruntime pypdfium2`
-(no admin rights needed) or an installed Tesseract.
-
-## 4. Evaluate (baseline vs. system on the same cases)
-
-```powershell
-# development split (used while tuning prompts)
-python eval/run_eval.py --index index/synthetic --cases eval/cases_synthetic.jsonl --split dev --label dev
-
-# final test split: baseline (closed_book) and system (rag)
+# official comparison: baseline (same model, no documents) vs OffTrav, on the frozen test split
 python eval/run_eval.py --index index/synthetic --cases eval/cases_synthetic.jsonl --split test --label test
 
-# optional third condition: all documents pasted into the prompt (no retrieval; slow on CPU)
+# other splits: dev (used while building), fixcheck (written after the test to check the fixes)
+python eval/run_eval.py --index index/synthetic --cases eval/cases_synthetic.jsonl --split fixcheck --label fixcheck
+
+# third condition: every document pasted into the prompt, no retrieval
 python eval/run_eval.py --index index/synthetic --cases eval/cases_synthetic.jsonl --split test --modes closed_book rag full_context --label test3
 
-# retrieval ablation, no chat model needed (recall@1/3/6 for BM25, dense, hybrid)
-python eval/run_eval.py --index index/synthetic --cases eval/cases_synthetic.jsonl --split all --retrieval-only
+# search-only ablation, no chat model needed: recall@1/3/6 for BM25, embeddings, hybrid
+python eval/run_eval.py --index index/synthetic --cases eval/cases_synthetic.jsonl --split test --retrieval-only
+
+# quick smoke test on 2 cases
+python eval/run_eval.py --index index/synthetic --cases eval/cases_synthetic.jsonl --split test --limit 2
 ```
 
-Each run writes `runs/<timestamp>_<label>/`:
+A full test run (20 cases x 2 modes) takes about 15 to 20 minutes on the tested laptop. Each run writes
+`runs/<timestamp>_<label>/`: `meta.json` (all settings, machine, file hashes), `results.jsonl` (every output,
+including errors), `scored.csv`, `case_evidence.csv` (question, scoring rule, both outputs, scores),
+`review.csv` (fill `human_correct` to override a score), `summary.md`. After reviewing:
+`python eval/score.py runs/<run folder>`.
 
-| File | Content |
-|---|---|
-| `meta.json` | model, temperature, seed, num_ctx, top_k, prompt version, machine, file hashes |
-| `results.jsonl` | full output per case and mode, including errors |
-| `scored.csv` | per case × mode: automatic score, citations, retrieved files, latency, tokens |
-| `case_evidence.csv` | one row per case: input, success rule, baseline output/score, system output/score, notes |
-| `review.csv` | fill `human_correct` (0/1) where you disagree with the automatic score |
-| `summary.md` | metrics table for the report |
+### 5.1 Test cases and scoring
 
-After reviewing: `python eval/score.py runs/<run folder>` re-applies your overrides.
-
-### Test cases and scoring
-
-`eval/cases_synthetic.jsonl`: 32 cases: 6 **dev** (S01–S06), 20 **test** (T01–T20) and 6 **fixcheck** (F01–F06, see below).
+`eval/cases_synthetic.jsonl`: 32 cases, written before testing: 6 **dev** (S01 to S06), 20 **test** (T01 to
+T20), and 6 **fixcheck** (F01 to F06, written after the test, before the revised pipeline was run).
 
 | Category | Test cases | What it checks |
 |---|---|---|
-| fact | T01 T02 T03 T11 T14 T15 | single rule from the policy order |
-| table | T04 T06 T07 T08 T09 | row lookup in the XLSX allowance schedule, including the "not listed" fallback |
-| calculation | T05 | rate × days |
-| contact | T10 | routing to the right office/e-mail (CSV) |
+| fact | T01 T02 T03 T11 T14 T15 | one rule from the office order |
+| table | T04 T06 T07 T08 T09 | row lookup in the allowance workbook, including the "not listed" fallback |
+| calculation | T05 | rate x days |
+| contact | T10 | the right office and e-mail |
 | procedure | T12 T13 | multi-step process with deadlines |
-| form | T16 | correct form number and attachment |
+| form | T16 | correct form and attachment |
 | unanswerable / out of scope | T17 T18 | must say it is not covered instead of guessing |
-| prompt injection | T19 (in the question) T20 (planted in an unofficial document) | rules hold; planted figure not repeated |
+| prompt injection | T19 (in the question), T20 (planted in an unofficial document) | the rules hold; the planted figure is never repeated |
 
-**Primary metric: answer correctness** = correct answers / all cases in the split. A case is correct when
-every `must_include` group matches, no `must_not_include` pattern matches, and refusal behaviour matches
-`expect_refusal`. Errors, timeouts and empty outputs count as incorrect (never dropped). The author reviews
-every automatic score in `review.csv`; overrides are counted in `summary.md`.
+**Primary metric: answer correctness** = correct answers / all cases in the split. Correct means every
+`must_include` group matches, no `must_not_include` pattern matches, and refusal behaviour matches
+`expect_refusal`. Errors, timeouts and empty outputs count as wrong. Secondary: citation accuracy, retrieval
+recall at 6, latency, output tokens.
 
-Secondary: citation accuracy (cited file contains the ground truth; answerable cases), retrieval recall@k,
-share of answers with unverified numbers, latency, output tokens.
+**Baseline:** the same model and settings with no documents (roughly what a general chatbot would give).
 
-**Test-set reuse (disclosed):** light stemming and the 3-passages-per-file cap were added after inspecting retrieval
-for test case T20, before any model answers were scored.
+### 5.2 Results (details in `evidence/synthetic/` and the written report)
 
-**Changes after the test run.** The test result (17/20) is the official result and is not replaced. Three
-general changes were then made for the failure patterns seen in T01, T06 and T12:
-
-| Failure | Cause | Change |
+| Run | Baseline | OffTrav |
 |---|---|---|
-| T01: said a 2-day course in Singapore is too short | rule lists named regions, then "the rest of the world"; the model put Asia in the wrong group | prompt rule 12: name the group the case belongs to before using its value (prompt v1.4) |
-| T06: refused the hotel ceiling for Nairobi | no row for Nairobi, and the "not listed" rows were not retrieved | when a table row is retrieved, that table's catch-all rows are added (`table_default_rows`) |
-| T12: next steps missed the Deed of Undertaking and insurance | the numbered steps were split across two chunks and only one was retrieved | the chunks just before and after each text hit ranked 1 to 3 are added (`expand_neighbors: 4`) |
+| Official test, 20 cases (reviewed) | 3/20 | **17/20** (citations 16/17, right file in top 6 18/18, median 24.6 s) |
+| Every document pasted in, same 20 | | 20/20 (median 27.6 s; the synthetic set is only ~5,000 tokens) |
+| Search ablation, right file at rank 1 | | keywords 13/18, embeddings 15/18, hybrid 16/18 |
+| After the fixes: dev / fix-check / test already seen | 0/6, 0/6, 5/20 | 6/6, 4/6, 19/20 |
+| Real documents, 23 questions (author's laptop, totals only) | 4/23 | 18/23; 20/23 after the fixes and review |
 
-The six **fixcheck** cases (F01–F06) are new questions on the same three patterns, written before the revised
-pipeline was run. The revised pipeline is reported on dev (no regressions), fixcheck, and the test split
-again, labelled *after the fixes, test cases already seen*. Set `expand_neighbors: 0` and
-`table_default_rows: false` to switch the retrieval changes off.
+On the real documents (about 29,000 tokens), pasting every document in was rejected at a 16k context window,
+and at 32k one answer took over 30 minutes; searching first is what makes the system usable on a laptop.
 
-**Baseline:** the same model and settings, prompted directly without retrieval (how an employee would use a
-general chatbot). Note: the synthetic organisation is fictional, so the baseline cannot know its facts; the
-comparison on real documents (`index/private`, private cases) is the more realistic one.
+---
 
-### Writing a quiz in Excel
+## 6. What the LLM does and what code does
 
-For a new document set (for example the real documents), write the questions and expected answers in
-`eval/cases_template.xlsx` (the "How to fill in" sheet explains each column), then convert it:
-
-```powershell
-python scripts/cases_from_excel.py eval/cases_private.xlsx eval/cases_private.jsonl
-python eval/run_eval.py --index index/private --cases eval/cases_private.jsonl --split test --label private
-```
-
-Files named `eval/cases_private*` are git-ignored.
-
-## 5. What the LLM does vs. deterministic code
-
-| Deterministic code | LLM (Ollama) |
+| Deterministic code | LLM on Ollama |
 |---|---|
-| loading PDF/DOCX/XLSX/CSV/MD, chunking, table-row serialisation | embeddings (`nomic-embed-text`) |
-| BM25, cosine search, reciprocal-rank fusion, per-file cap, adding neighbouring passages and table catch-all rows | composing the answer from numbered sources (`qwen3:30b-instruct`) |
-| prompt-injection quarantine, no-evidence gate, question length cap | |
-| citation validation, claim-level number check, refusal detection | |
-| deadline planner (dates from the deadline table) | |
-| scoring and reporting | |
+| loading and chunking documents, table-row text | embeddings (`nomic-embed-text`) |
+| BM25, cosine search, rank fusion, per-file cap, neighbour and catch-all rows | writing the answer from numbered sources (`qwen3:30b-instruct`) |
+| injection filter, no-evidence gate, question length cap | |
+| citation check, per-sentence number check, refusal detection | |
+| deadline planner, contact list, e-mail drafts | |
+| scoring and reports | |
 
-People: prepare and update the documents and the deadline table, fix the values flagged by
-`compare_extraction.py`, write the test cases, review every evaluation score, and confirm any answer with the
-DES Administrative Unit before acting on it.
+People: prepare and update the documents and the deadline table, fix values flagged in scanned PDFs, write
+the test cases, review the scores, and confirm any answer with the DES Administrative Unit before acting on it.
 
 ### Checks after the answer
 
-Code splits the answer into sentences and checks every number against the passage that sentence cites:
-
 | Result | Meaning | Shown to the user |
 |---|---|---|
-| found in the cited source | the number is in the cited passage, and "working" or "calendar" days agree | in "How the numbers were checked" |
-| from your question | the employee gave it (e.g. "a 4-day trip") | same |
-| calculated | not in any source, but equals a product or sum of numbers that are (USD 50 x 4 = 200) | same |
-| unit differs | the cited passage has the number with the other kind of days | warning |
-| not in the cited source | the number is in another passage, not the one cited | warning |
+| found in the cited source | the number is in the cited passage, and working/calendar days agree | in "How the numbers were checked" |
+| from your question | the employee gave it (for example "a 4-day trip") | same |
+| calculated | equals a product or sum of grounded numbers (USD 50 x 4 = 200) | same |
+| unit differs | the cited passage has the number with the other kind of day | warning |
+| not in the cited source | the number is only in another passage | warning |
 | no citation / not in any source | | warning |
 
-Citation tags are also checked: a tag must point to a passage that was supplied. The answer is still shown when a
-check fails; the warnings say which number to check and tell the employee to confirm with the DES Administrative
-Unit. **Not checked by code:** whether the rule applies to the employee's destination, rank, event type or dates
-(contextual accuracy). That depends on the prompt rules (name the group before using its value; ask for missing
-facts), is measured by the test cases, and stays with the employee and the office. The deadline planner's dates are
-computed by code from the deadline table, so they are checked by the planner tests, not by this answer check.
+The answer is still shown when a check fails; the warning names the number and says to confirm with the DES
+Administrative Unit. **Not checked by code:** whether the rule fits the employee's destination, rank, event
+type or dates. That depends on the prompt rules, is measured by the test cases, and stays with the office.
 
-## 6. Safeguards and data handling
+## 7. Scanned PDFs
 
-- **Local only.** Ollama and the chat app listen on `localhost` only; Streamlit usage statistics are switched off and the fonts are bundled, so the app makes no outside requests. Documents, index, prompts, answers and run logs stay in this folder.
-- **Restricted data.** `data/private/`, `index/`, `runs/` and private case files are git-ignored. Submit only the synthetic corpus and its runs.
-- **Hallucination.** Prompt restricts answers to the supplied sources and requires `[S#]` citations; post-checks flag
-  invalid citations, answers without citations, and numbers not found in the passage their sentence cites
-  (see "Checks after the answer").
-- **Demo safety.** `OFFTRAV_DEMO=1` limits the app to the synthetic index, so a class demo or recording cannot
-  search the private documents.
-- **Prompt injection.** Retrieved passages are delimited and labelled as data; passages with instruction-like text
-  are excluded and the user is told which file was excluded.
-- **Sensitive data.** The assistant is told not to ask for passport numbers or other personal data.
-- **Human review.** Answers show sources; the UI reminds users to confirm with the cited document or office.
-  The assistant does not decide eligibility or approvals.
-
-## 7. Tests
+A scanned PDF either has no text (OffTrav cannot read it; the Documents tab warns) or carries the scanner's
+own OCR text, which can be wrong (a real office order said "50" for "30 calendar days").
 
 ```powershell
-python -m pytest -q
+python scripts/compare_extraction.py data/sample_synthetic   # lists only numbers whose readings disagree
+python scripts/ocr_to_docx.py "<file>.pdf"                    # scanned PDF with no text -> Word file, uncertain lines highlighted
 ```
 
-The tests start `tests/mock_ollama.py`, a stand-in server that imitates the Ollama API (it is not a model), so they
-check plumbing and deterministic safeguards without downloading anything. Scores from the stand-in are meaningless.
+`compare_extraction.py` compares the stored text, a second PDF library and a fresh OCR of the page, and flags
+word/digit disagreements such as "thirty (50)". On a degraded synthetic scan it caught all 9 misread numbers.
+It cannot catch a number both readings get wrong. Optional OCR engines: `pip install rapidocr-onnxruntime pypdfium2`
+or an installed Tesseract.
 
-## 8. Reproducibility notes
+## 8. Safeguards and data handling
+
+- **Local only.** Ollama and Streamlit listen on `localhost`; Streamlit usage statistics are off and the fonts are bundled, so the app makes no outside requests.
+- **Restricted data.** `data/private/`, `index/`, `runs/` and private case files are excluded (see `.gitignore`); this ZIP has none of them.
+- **Hallucination.** Answers must come from the numbered sources with `[S#]` citations; code checks citations and numbers; the model is not called when nothing relevant is found.
+- **Prompt injection.** Sources are delimited and labelled as data; passages with instruction-like text are removed and the user is told which file.
+- **Personal data.** OffTrav never asks for passport numbers or other personal data.
+- **Decisions.** Eligibility answers are preliminary; OffTrav approves, fills in and submits nothing. Contacts only opens a draft in the user's own mail app.
+- **Demo safety.** `OFFTRAV_DEMO=1` limits the app to the synthetic index.
+
+## 9. Tests
+
+```powershell
+python -m pytest -q          # 21 tests, about 3 seconds, no model download needed
+```
+
+The tests start `tests/mock_ollama.py`, a stand-in that imitates the Ollama API (it is not a model), so they
+check the plumbing and deterministic safeguards only. Scores from the stand-in are meaningless.
+
+## 10. Reproducibility
 
 - Decoding: temperature 0, seed 42, top_p 1, `think: false`. Wording can still vary across Ollama versions and hardware.
-- Record `ollama --version` and `ollama show qwen3:30b-instruct` output with your results.
-- Regenerate the synthetic corpus and cases: `python scripts/make_synthetic_corpus.py` and `python scripts/make_cases.py`.
-- Override any setting without editing files, e.g. `$env:OFFTRAV_OLLAMA_CHAT_MODEL="llama3.1:8b"`.
+- Every run records its settings, prompt version and file hashes in `meta.json`.
+- Regenerate the synthetic documents and cases: `python scripts/make_synthetic_corpus.py` (needs `reportlab`) and `python scripts/make_cases.py`.
+- New questions can be written in Excel (`eval/cases_template.xlsx`) and converted with `python scripts/cases_from_excel.py <in.xlsx> <out.jsonl>`.
 
-## 9. Data sources
+## 11. Data sources
 
-- Synthetic corpus: written for this project; fictional organisation, rates, contacts and form numbers.
-- Real documents (not distributed): the organisation's foreign travel office order, booking guide and forms,
-  used with permission, only on the author's laptop. Never uploaded, committed, shown or recorded.
+- Synthetic documents: written for this project; fictional organisation, rates, contacts and form numbers.
+- Real documents (not distributed): BSP foreign travel office orders and memoranda, allowance guidelines, booking guide, checklists and forms, used with permission on the author's laptop only.

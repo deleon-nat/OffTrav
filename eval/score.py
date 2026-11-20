@@ -15,6 +15,7 @@ from offtrav.scoring import score_row, write_outputs  # noqa: E402
 
 
 def main() -> int:
+    """Rebuild scored.csv and summary.md from results.jsonl, applying any edits in review.csv."""
     if len(sys.argv) != 2:
         print(__doc__)
         return 1

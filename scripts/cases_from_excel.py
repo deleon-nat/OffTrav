@@ -12,7 +12,7 @@ Columns (sheet "Cases", one question per row):
   Must not include   one line per text that must NOT appear (e.g. a wrong deadline)
   Should refuse      no  = must answer;  yes = must say it is not in the documents;
                      either = a refusal or a correct answer both count
-  Source documents   one line per file-name part that contains the answer, e.g. 0957
+  Source documents   one line per file-name part that contains the answer, e.g. OO_2024-101
 
 Text is matched without regard to upper/lower case. Plain numbers only match whole numbers
 (30 does not match 300). To write a regular expression instead, wrap it in slashes: /30 (calendar )?days/
@@ -31,6 +31,7 @@ COLUMNS = ["ID", "Split", "Category", "Question", "Must include", "Must not incl
 
 
 def to_pattern(text: str) -> str:
+    """Turn an expected phrase from the spreadsheet into a forgiving regex (case, spacing, punctuation)."""
     text = text.strip()
     if len(text) > 2 and text.startswith("/") and text.endswith("/"):
         return text[1:-1]                              # user-written regular expression
@@ -41,12 +42,14 @@ def to_pattern(text: str) -> str:
 
 
 def lines(cell) -> list[str]:
+    """Split a spreadsheet cell into its non-empty lines."""
     if cell is None:
         return []
     return [l.strip() for l in str(cell).splitlines() if l.strip()]
 
 
 def convert(xlsx: str, out: str) -> int:
+    """Read the Excel test-case template and write the cases as JSONL; returns the number of cases."""
     ws = load_workbook(xlsx, data_only=True)["Cases"]
     rows = list(ws.iter_rows(values_only=True))
     header = [str(h).strip() if h else "" for h in rows[0]]

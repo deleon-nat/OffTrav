@@ -4,6 +4,13 @@ Tabs: Ask (grounded chat), My trip (deadline planner), Contacts, Documents.
 Everything runs locally: the browser talks to this Streamlit process on localhost, which talks to the
 local Ollama server. Fonts are bundled in static/fonts; usage statistics are off in .streamlit/config.toml.
 Feedback (thumbs up/down) is appended to runs/feedback.jsonl on this laptop.
+
+For the code review, the GenAI path in this file is short (search for "STEP"):
+  STEP 1  the user's question is read into the variable `question` (chat box or starter button)
+  history the earlier messages are taken from st.session_state.messages
+  STEPS 2-8 run in offtrav/answer.py: assistant.prepare() -> stream_text() -> finish_stream()
+  STEP 9  the answer is appended to st.session_state.messages, so the next question sees it
+Everything else here is layout (Streamlit widgets and HTML/CSS for the boarding-pass look).
 """
 from __future__ import annotations
 
@@ -25,21 +32,25 @@ from offtrav.ollama_client import OllamaClient, OllamaError
 from offtrav.planner import find_rules_file, load_rules, plan, to_ics
 
 ROOT = Path(__file__).resolve().parent
+# thumbs up/down are saved locally, never sent anywhere
 FEEDBACK_FILE = ROOT / "runs" / "feedback.jsonl"
 st.set_page_config(page_title="OffTrav", page_icon=":material/flight_takeoff:", layout="centered")
 st.markdown(f"<style>{(ROOT / 'static' / 'offtrav.css').read_text(encoding='utf-8')}</style>",
             unsafe_allow_html=True)
 
+# starter questions shown on an empty chat (clicking one is the same as typing it)
 STARTERS = [
     "It's my first official trip abroad. What do I need to prepare?",
     "What allowances do I get per day abroad?",
     "Am I entitled to the clothing allowance for my trip?",
     "Who do I email for airfare quotations?",
 ]
+# display names for the two indexes; only "synthetic" is shown in demo mode
 LABELS = {"synthetic": "Biringan Central Bank (synthetic)", "private": "BSP documents (private)"}
 SHORT = {"synthetic": "Biringan (synthetic)", "private": "BSP (private)"}
 AVATAR = {"user": ":material/person:", "assistant": ":material/flight_takeoff:"}
-e = html.escape
+e = html.escape          # escape any text placed inside our own HTML
+# planner date fields, used to tell the user which date is missing for a deadline
 FIELD_FOR = {"registration_deadline": "Organiser's registration deadline", "fta_approval": "FTA approved on",
              "event_start": "Event starts", "event_end": "Event ends", "departure": "Departure date",
              "return_date": "Return date"}
@@ -50,13 +61,16 @@ def shorten(text: str, limit: int = 160) -> str:
     text = " ".join(text.split())
     return text if len(text) <= limit else text[:limit].rsplit(" ", 1)[0] + " ..."
 
-cfg = load_config()
+cfg = load_config()                       # settings from config.yaml (models, retrieval, safeguards)
+# every folder under index/ that contains chunks.jsonl is a selectable document set
 index_root = ROOT / "index"
 indexes = sorted(p.name for p in index_root.glob("*") if (p / "chunks.jsonl").exists()) if index_root.exists() else []
 # Demo or recording: set OFFTRAV_DEMO=1 so only the synthetic documents can be selected or searched
 DEMO = os.environ.get("OFFTRAV_DEMO", "").strip() not in ("", "0", "false")
 if DEMO:
     indexes = [n for n in indexes if n == "synthetic"]
+# CONVERSATION MEMORY: Streamlit reruns this script on every click, so the chat is kept in
+# st.session_state.messages, a list of {"role": "user"|"assistant", "content": ..., "result": ...}
 st.session_state.setdefault("messages", [])
 st.session_state.setdefault("fb_logged", {})
 
@@ -67,16 +81,18 @@ with st.sidebar:
         st.error("No documents are indexed yet. In the terminal, run:\n\n"
                  "`python -m offtrav ingest --data data/sample_synthetic --index index/synthetic`")
         st.stop()
+    # which document set to answer from (synthetic for the demo, private only on the owner's laptop)
     index_name = st.selectbox("Documents", indexes, format_func=lambda n: SHORT.get(n, n))
     models = OllamaClient(cfg).available_models()
     chat_models = [m for m in models if "embed" not in m] or [cfg["ollama"]["chat_model"]]
     default = next((m for m in chat_models if m.split(":latest")[0] == cfg["ollama"]["chat_model"]), chat_models[0])
     cfg["ollama"]["chat_model"] = st.selectbox("Answer model", chat_models, index=chat_models.index(default))
+    # "rag" = OffTrav; "closed_book" = the same model without documents, to show the difference live
     mode = st.radio("Answer from", ["rag", "closed_book"], format_func=lambda m: {
         "rag": "The travel documents", "closed_book": "The model alone (for comparison)"}[m])
     cfg["retrieval"]["top_k"] = st.slider("Passages to read per question", 2, 10, cfg["retrieval"]["top_k"])
     show_passages = st.toggle("Show what the search found", value=False)
-    if st.button("New chat", icon=":material/refresh:"):
+    if st.button("New chat", icon=":material/refresh:"):    # clears the conversation memory
         st.session_state.messages, st.session_state.fb_logged = [], {}
         st.rerun()
     convo_slot = st.empty()
@@ -86,6 +102,7 @@ with st.sidebar:
 
 @st.cache_resource(show_spinner="Opening the documents")
 def get_assistant(index_name: str, chat_model: str, top_k: int) -> Assistant:
+    """Load the index once and reuse it across reruns (reloaded only if these settings change)."""
     return Assistant(cfg, str(index_root / index_name))
 
 
@@ -102,6 +119,7 @@ doc_label = LABELS.get(index_name, assistant.org)
 
 
 def conversation_markdown() -> str:
+    """The whole chat with its sources as Markdown, for the 'Save this chat' button."""
     lines = ["# OffTrav conversation", "", f"Documents: {doc_label}",
              f"Saved: {datetime.now():%d %B %Y, %H:%M}", ""]
     for m in st.session_state.messages:
@@ -139,6 +157,7 @@ tab_ask, tab_trip, tab_contacts, tab_docs = st.tabs(["Ask", "My trip", "Contacts
 
 # ================================================================== Ask
 def log_feedback(i: int, value: int) -> None:
+    """Append one thumbs up/down, with the question, answer and sources, to runs/feedback.jsonl."""
     msgs = st.session_state.messages
     r = msgs[i].get("result") or {}
     rec = {"time": datetime.now().isoformat(timespec="seconds"), "documents": index_name, "mode": r.get("mode"),
@@ -152,6 +171,7 @@ def log_feedback(i: int, value: int) -> None:
 
 
 def render_meta(r: dict) -> None:
+    """Show what comes with an answer: sources, cited passages, number checks, warnings, timing."""
     cites = r.get("citations") or []
     if cites:
         items = "".join(f"<li>[{e(c['id'])}] {e(c['source'])}, {e(c['location'])}</li>" for c in cites)
@@ -186,6 +206,7 @@ def render_meta(r: dict) -> None:
 
 
 with tab_ask:
+    # redraw the conversation so far (Streamlit redraws the whole page on every interaction)
     for i, m in enumerate(st.session_state.messages):
         with st.container(key=f"msg-{m['role']}-{i}"):
             with st.chat_message(m["role"], avatar=AVATAR[m["role"]]):
@@ -200,7 +221,7 @@ with tab_ask:
                             st.toast("Feedback saved on this laptop")
 
     question = None
-    if not st.session_state.messages:
+    if not st.session_state.messages:          # empty chat: show a welcome line and starter questions
         st.markdown('<div class="ot-h">Planning an official trip abroad?</div>'
                     '<p class="ot-p">Ask about requirements, allowances, forms, contacts and deadlines. '
                     "Every answer shows the document it came from.</p>", unsafe_allow_html=True)
@@ -213,6 +234,7 @@ with tab_ask:
             if clicked:
                 question = s
 
+    # STEP 1: the user's question enters here and is assigned to the variable `question`
     typed = st.chat_input("Ask about your official foreign travel")
     question = typed or question
 
@@ -222,25 +244,30 @@ with tab_ask:
         with st.container(key=f"msg-user-{n - 1}"):
             with st.chat_message("user", avatar=AVATAR["user"]):
                 st.markdown(question)
+        # all earlier messages (without the one just added); answer.py sends the last 2 turns to the model
         history = [{"role": m["role"], "content": m["content"]} for m in st.session_state.messages[:-1]]
         with st.container(key=f"msg-assistant-{n}"):
             with st.chat_message("assistant", avatar=AVATAR["assistant"]):
                 try:
                     with st.spinner("Searching the travel documents" if mode == "rag" else "Thinking"):
+                        # STEPS 2-6: checks, search, safeguards, prompt (offtrav/answer.py)
                         state = assistant.prepare(question, mode=mode, history=history)
+                        # STEP 7: start generating; pieces arrive while the model writes
                         stream = assistant.stream_text(state)
                         first = next(stream, "")          # wait for the first words inside the spinner
-                    st.write_stream(chain([first], stream))
-                    r = assistant.finish_stream(state)
+                    st.write_stream(chain([first], stream))      # show the answer as it is written
+                    r = assistant.finish_stream(state)           # STEP 8: citation and number checks
                 except OllamaError as err:
                     st.error(f"{err}\n\nStart the Ollama app, then ask again.")
                     st.stop()
+        # STEP 9: remember the answer (with its sources and checks) so follow-ups can refer to it
         st.session_state.messages.append({"role": "assistant", "content": r["answer"], "result": r})
         st.rerun()
 
 
 # ================================================================== My trip
 def date_box(item: dict) -> str:
+    """HTML for the calendar-style date shown next to each deadline."""
     d = item["due"]
     if d is None:
         return '<div class="ot-date none"><div class="d">Needs a date</div></div>'
@@ -248,6 +275,7 @@ def date_box(item: dict) -> str:
     return f'<div class="ot-date{cls}"><div class="d">{d.day}</div><div class="m">{d:%b %Y}, {d:%a}</div></div>'
 
 
+# The My trip tab uses offtrav/planner.py only: deterministic date arithmetic, no LLM.
 with tab_trip:
     st.markdown('<div class="ot-h">Your deadlines, worked out for you</div>'
                 '<p class="ot-p">Enter your dates. OffTrav lists every deadline in order, from the deadline '
@@ -284,7 +312,7 @@ with tab_trip:
         if dates["departure"] and dates["return_date"] and dates["return_date"] < dates["departure"]:
             st.error("The return date is before the departure date. Check the dates.")
         else:
-            items = plan(rules, event_type, dates, today=date.today())
+            items = plan(rules, event_type, dates, today=date.today())   # every deadline, in date order
             dated = [i for i in items if i["due"]]
             keyp = f"done-{index_name}-{event_type}-"
             done = sum(1 for i in items if st.session_state.get(keyp + i["step"][:60]))
@@ -335,6 +363,7 @@ with tab_trip:
 
 
 # ================================================================== Contacts
+# The Contacts tab uses offtrav/contacts.py only: it reads the contact list and builds mailto: links.
 with tab_contacts:
     st.markdown('<div class="ot-h">Who to contact</div><p class="ot-p">From the contact list in the documents. '
                 "Fill in your details and OffTrav prepares the subject line.</p>", unsafe_allow_html=True)
@@ -362,6 +391,7 @@ with tab_contacts:
 
 
 # ================================================================== Documents
+# The Documents tab shows the manifest: what is indexed and any extraction warnings (e.g. scanned pages).
 with tab_docs:
     created = manifest.get("created", "")
     try:
